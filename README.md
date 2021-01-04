@@ -1,4 +1,5 @@
-# Getting Started with Create React App
+# ribbitsong
+An events dataset and dynamic timeline viewer for all events that occur in all of paradox space.
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
