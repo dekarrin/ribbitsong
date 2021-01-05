@@ -61,14 +61,28 @@ class WorkDialogueCitation extends Citation {
 // Refers to non-dialog text on a panel/page.
 class WorkNarrationCitation extends Citation {
   constructor(work, panel, paragraph, sentence) {
+    super(CitationTypes.WORK_NARRATION);
     this.work = work;
     this.panel = parseInt(panel, 10);
     this.paragraph = parseInt(paragraph, 10);
     this.sentence = parseInt(sentence, 10);
   }
-}
+};
 
-WORK_DIALOGUE (work, panel, character, line)
-WORK_NARRATION (work, panel, paragraph, sentence)
-WORK_MEDIA (work, panel, timestamp)
-PRINT_COMMENTARY (work, volume, page)
+class WorkMediaCitation extends Citation {
+  constructor(work, panel, time) {
+    super(CitationTypes.WORK_MEDIA);
+    this.work;
+    this.panel = parseInt(panel, 10);
+    this.timestamp = time;
+  }
+};
+
+class PrintCommentaryCitation extends Citation {
+  constructor(work, volume, page) {
+    super(CitationTypes.PRINT_COMMENTARY);
+    this.work = work;
+    this.volume = parseInt(volume, 10);
+    this.page = parseInt(page, 10);
+  }
+};
