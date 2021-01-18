@@ -45,6 +45,15 @@ class Citation {
   constructor(type) {
     this.type = type;
   }
+
+  /**
+   * Create a duplicate of this Citation.
+   *
+   * @return {Citation}
+   */
+  copy() {
+    throw new Error("not implemented");
+  }
 };
 
 // Refers to the dialogue (pesterlog, dialoglog, etc).
@@ -55,6 +64,10 @@ class WorkDialogueCitation extends Citation {
     this.panel = parseInt(panel, 10);
     this.character = character;
     this.line = parseInt(line, 10);
+  }
+
+  copy() {
+    return new WorkDialogueCitation(this.work, this.panel, this.character, this.line);
   }
 }
 
@@ -67,6 +80,10 @@ class WorkNarrationCitation extends Citation {
     this.paragraph = parseInt(paragraph, 10);
     this.sentence = parseInt(sentence, 10);
   }
+
+  copy() {
+    return new WorkNarrationCitation(this.work, this.panel, this.paragraph, this.sentence);
+  }
 };
 
 class WorkMediaCitation extends Citation {
@@ -76,6 +93,10 @@ class WorkMediaCitation extends Citation {
     this.panel = parseInt(panel, 10);
     this.timestamp = time;
   }
+
+  copy() {
+    return new WorkMediaCitation(this.work, this.panel, this.timestamp);
+  }
 };
 
 class PrintCommentaryCitation extends Citation {
@@ -84,5 +105,9 @@ class PrintCommentaryCitation extends Citation {
     this.work = work;
     this.volume = parseInt(volume, 10);
     this.page = parseInt(page, 10);
+  }
+
+  copy() {
+    return new PrintCommentaryCitation(this.work, this.volume, this.page);
   }
 };

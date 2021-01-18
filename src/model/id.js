@@ -158,3 +158,84 @@ class TimeID {
   }
 
 }
+
+/**
+ * A reference to a TimeID. Can be one of multiple levels of specifity.
+ */
+class TimeIDRef {
+
+  /**
+   * Create a reference to a TimeID. The returned TimeID is non-generic and will
+   * only resolve in a situation where only one TimeID of that UUID exists; to
+   * get more specific, convert the returned ID to a different comparison using
+   * toExactAge, toYoungest, or toOldest.
+   * @param {UUID4} uuid - The UUID of the TimeID.
+   */
+  constructor(uuid) {
+    this.uuid = uuid;
+    this.comparison = null;
+    this.target = -1;
+  }
+
+  /**
+   * Copy this TimeIDRef into a new one that refers to the TimeID with the same
+   * UUID as this TimeIDRef and that has an exact age.
+   *
+   * This is usually not desired as the age is subject to change frequently. It
+   * should generally only be used if an absolute age has been established; in
+   * other cases, toYoungest or toOldest should be used to provide a reference
+   * that relies on the relative ages between available TimeIDs of the desired
+   * UUID instead of an exact one.
+   *
+   * @param {number} age - The age of the TimeID to specify.
+   * @return {TimeIDRef}
+   */
+  toExactAge(age) {
+    let ref = new TimeIDRef(this.uuid);
+    ref.comparison = 'exact';
+    ref.target = age;
+    return ref;
+  }
+
+  /**
+   * Copy this TimeIDRef into a new one that refers to the TimeID that has the
+   * lowest age of all TimeIDs with the UUID in this TimeIDRef.
+   *
+   * The index can be used to provide more complicated criteria and is used as
+   * the index of the TimeID that should be selected when all of the TimeIDs
+   * with the UUID in the returned TimeIDRef are ordered by age, smallest to
+   * largest. So keeping index at 0 will return the youngest, giving it as 1
+   * will return the second youngest, etc.
+   *
+   * @param {number} index - Which youngest to get. 0 is youngest, 1 is
+   * second-youngest, 2 is third-youngest, etc.
+   * @return {TimeIDRef}
+   */
+  toYoungest(index = 0) {
+    let ref = new TimeIDRef(this.uuid);
+    ref.comparison = 'youngest';
+    ref.target = index;
+    return ref;
+  }
+
+  /**
+   * Copy this TimeIDRef into a new one that refers to the TimeID that has the
+   * highest age of all TimeIDs with the UUID in this TimeIDRef.
+   *
+   * The index can be used to provide more complicated criteria and is used as
+   * the index of the TimeID that should be selected when all of the TimeIDs
+   * with the UUID in the returned TimeIDRef are ordered by age, largest to
+   * smallest. So keeping index at 0 will return the oldest, giving it as 1
+   * will return the second oldest, etc.
+   *
+   * @param {number} index - Which oldest to get. 0 is oldest, 1 is
+   * second-oldest, 2 is third-oldest, etc.
+   * @return {TimeIDRef}
+   */
+  toOldest(index = 0) {
+    let ref = new TimeIDRef(this.uuid);
+    ref.comparison = 'oldest';
+    ref.target = index;
+    return ref;
+  }
+}

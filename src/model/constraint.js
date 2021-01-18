@@ -23,6 +23,10 @@ class Constraint {
   constructor(type) {
     this.type = type;
   }
+
+  copy() {
+    return new Error("not implemented");
+  }
 };
 
 // The constraint implies an exact time. The precision of the time could vary.
@@ -32,6 +36,10 @@ class AbsoluteConstraint extends Constraint {
     super(ConstraintTypes.ABSOLUTE);
     this.time = time;
     this.citation = citation;
+  }
+
+  copy() {
+    return new AbsoluteConstraint
   }
 };
 
