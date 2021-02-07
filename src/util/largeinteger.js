@@ -41,7 +41,7 @@ class LargeInteger {
    */
   constructor(num = null) {
     this.signum = 0;
-    this.mag = [];  // always in little endian.
+    this.mag = [];  // always in little endian; mag[0] is least sig, mag[len(mag)-1] is most
     if (num !== null) {
       if (num instanceof LargeInteger) {
         this.signum = num.signum;
@@ -83,6 +83,55 @@ class LargeInteger {
   }
 
   /**
+   * Divide the value of this LargeInteger by another operand. The result is
+   * rounded down and remainder is discarded.
+   *
+   * @param {?(number|string|LargeInteger)} b The divisor; the term to divide
+   * this one by.
+   * @return {LargeInteger} The large integer that is the result of dividing
+   * the value in this one by the operand.
+   */
+  div(b) {
+    if (b === null) {
+      throw new TypeError("division by null is not defined");
+    }
+
+    if (!(b instanceof LargeInteger)) {
+      b = new LargeInteger(b);
+    }
+
+    if (b.signum === 0) {
+      throw new TypeError("division by 0 is not defined");
+    } else if (this.signum === 0) {
+      return this.copy();
+    } else if (this.sig)
+    // TODO: special case dividing a/a = 1?
+
+    if (this.signum !== b.signum) {
+      return this.minus(b.negate());
+    }
+
+    let result = new LargeInteger(0);  // don't use Zero because we're about to modify
+
+    for (let i = 0; i < b.mag.length; i++) {
+      for (let j = 0; j < this.mag.length; j++) {
+        if (i+j >= result.mag.length) {
+          result.mag.push(0);
+        }
+        result.mag[i+j] += this.mag[j] * b.mag[i];
+      }
+      // do a carry now to prevent overflow
+      LargeInteger.carry(result.mag, InternalRadix);
+    }
+
+    result.signum = this.signum;
+    if (this.signum !== b.signum) {
+      result.signum *= -1;
+    }
+    return result;
+  }
+
+  /**
    * Multiply the value of this LargeInteger by another operand.
    *
    * @param {?(number|string|LargeInteger)} b The term to multiply this one by.
@@ -104,10 +153,6 @@ class LargeInteger {
       return this.copy();
     }
 
-    if (this.signum !== b.signum) {
-      return this.minus(b.negate());
-    }
-
     let result = new LargeInteger(0);  // don't use Zero because we're about to modify
 
     for (let i = 0; i < b.mag.length; i++) {
@@ -121,9 +166,9 @@ class LargeInteger {
       LargeInteger.carry(result.mag, InternalRadix);
     }
 
-    result.signum = 1;
+    result.signum = this.signum;
     if (this.signum !== b.signum) {
-      result.signum = -1;
+      result.signum *= -1;
     }
     return result;
   }
