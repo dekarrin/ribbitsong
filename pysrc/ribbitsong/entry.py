@@ -34,7 +34,7 @@ def confirm(prompt: Optional[str] = None) -> bool:
         prompt = "(Y/N)"
     else:
         prompt = prompt.rstrip() + " (Y/N)"
-    ch = get_choice(str.lower, prompt, "y", "n", "yes", "no")
+    ch = get_choice(str.lower, "y", "n", "yes", "no", prompt=prompt)
     return ch == "y" or ch == "yes"
     
     
@@ -57,6 +57,7 @@ def get(type_conv: Callable[[str], _T], prompt: Optional[str] = None, allow_blan
     while valid is None:
         if prompt is not None:
             prompt = prompt.rstrip() + " "
+            
         raw = input(prompt)
         try:
             valid = type_conv(raw)

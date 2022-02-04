@@ -77,7 +77,7 @@ def set_schema(store: FlexibleStore) -> Optional[str]:
     If the schema does not exist, prompt to create it.
     """
     
-    schema = entry.get(str, prompt="Enter schema to switch to/create")
+    schema = entry.get(str, prompt="Enter schema to switch to/create:")
     if schema in store:
         entry.pause("Switched to schema {!r}".format(schema))
         return schema
@@ -124,7 +124,11 @@ def save_db(store: FlexibleStore, default: str) -> str:
     
     Return the selected filename after save has completed.
     """
-    p = "Enter filename to save to (default: {!r})".format(default)
+    p = "Enter filename to save to"
+    if default is not None:
+        p += "(default: {!r})".format(default)
+    p += ":"
+    
     fname = entry.get(str, p, allow_blank=True)
     if fname == "":
         fname = default
@@ -132,7 +136,7 @@ def save_db(store: FlexibleStore, default: str) -> str:
     saveable = store.to_dict()
     
     try:
-        with open(fname, 'wb') as fp:
+        with open(fname, 'w') as fp:
             json.dump(saveable, fp)
     except Exception as e:
         print("Could not save to {!r}:".format(fname))
@@ -140,18 +144,23 @@ def save_db(store: FlexibleStore, default: str) -> str:
         entry.pause()
         return None
         
-    entry.pause("Saved to {!r}".format(fname))
+    print("Saved to {!r}".format(fname))
+    entry.pause()
     return fname
     
     
 def load_db(default: str) -> Tuple[FlexibleStore, str]:
-    p = "Enter filename to load from (default: {!r})".format(default)
+    p = "Enter filename to load from"
+    if default is not None:
+        p += "(default: {!r})".format(default)
+    p += ":"
+    
     fname = entry.get(str, p, allow_blank=True)
     if fname == "":
         fname = default
     
     try:
-        with open(fname, 'rb') as fp:
+        with open(fname, 'r') as fp:
             store_dict = json.load(fp)
     except Exception as e:
         print("Could not load from {!r}:".format(fname))

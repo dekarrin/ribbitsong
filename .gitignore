@@ -3,6 +3,7 @@
 # python
 *.pyc
 *.pyb
+*.json
 
 # dependencies
 /node_modules
