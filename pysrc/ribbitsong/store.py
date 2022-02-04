@@ -103,7 +103,7 @@ class Model:
                 raise ValueError("field {!r} has duplicate entries".format(field.name))
             m.fields[field.name] = field
             
-        return model
+        return m
         
     def __getitem__(self, key):
         return self.fields[key]
@@ -159,8 +159,8 @@ class FlexibleSchema:
             raise ValueError("missing key 'name'")
         if 'model' not in d:
             raise ValueError("missing key 'model'")
-        if 'rows' not in d:
-            raise ValueError("missing key 'rows'")
+        if 'data' not in d:
+            raise ValueError("missing key 'data'")
         
         name = str(d['name'])
         try:
@@ -171,7 +171,7 @@ class FlexibleSchema:
         fs = FlexibleSchema(name, model)
         
         # now add the rows via insert so that they are checked
-        for r in d['rows']:
+        for r in d['data']:
             self.insert(r)
             
         return fs
@@ -322,7 +322,7 @@ class FlexibleStore:
                 schema = FlexibleSchema.from_dict(f)
             except Exception as e:
                 raise ValueError("schemas[{:d}]: {:s}".format(idx, str(e)))
-            if schema.name in self:
+            if schema.name in fs:
                 raise ValueError("schema {!r} has duplicate entries".format(field.name))
                 
             fs.schemas[schema.name] = schema

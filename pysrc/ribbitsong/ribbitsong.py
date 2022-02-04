@@ -10,6 +10,7 @@ def show_main_menu():
     active_schema = None
     last_filename = None
     cur_store = FlexibleStore()
+    unsaved_mutations = False
     
     print("RibbitSong Cherub v" + Version)
     print("=============================")
@@ -48,25 +49,41 @@ def show_main_menu():
         elif choice == "data":
             entry.pause("Not yet ready")
         elif choice == "schema":
+            len_before = len(cur_store)
             schema = set_schema(cur_store)
+            if len(cur_store) != len_before:
+                unsaved_mutations = True
+            
             if schema is not None:
                 active_schema = schema
         elif choice == "destroy":
             destroyed = destroy_schema(cur_store, active_schema)
             if destroyed:
+                unsaved_mutations = True
                 active_schema = None
         elif choice == "list":
             list_schemas(cur_store)
         elif choice == "save":
             saved_fname = save_db(cur_store, last_filename)
             if saved_fname is not None:
+                unsaved_mutations = False
                 last_filename = saved_fname
         elif choice == "load":
+            if unsaved_mutations:
+                print("There are unsaved changes in the DB!")
+                if not entry.confirm("Are you sure you want to load a DB and discard the changes?"):
+                    continue
+            
             loaded_store, loaded_fname = load_db(last_filename)
             if loaded_store is not None:
-                store = loaded_store
+                cur_store = loaded_store
                 last_filename = loaded_fname
+                unsaved_mutations = False
         elif choice == "exit":
+            if unsaved_mutations:
+                print("There are unsaved changes in the DB!")
+                if not entry.confirm("Are you sure you want to exit and discard the changes?"):
+                    continue
             running = False
         
         
@@ -126,7 +143,7 @@ def save_db(store: FlexibleStore, default: str) -> str:
     """
     p = "Enter filename to save to"
     if default is not None:
-        p += "(default: {!r})".format(default)
+        p += " (default: {!r})".format(default)
     p += ":"
     
     fname = entry.get(str, p, allow_blank=True)
@@ -152,7 +169,7 @@ def save_db(store: FlexibleStore, default: str) -> str:
 def load_db(default: str) -> Tuple[FlexibleStore, str]:
     p = "Enter filename to load from"
     if default is not None:
-        p += "(default: {!r})".format(default)
+        p += " (default: {!r})".format(default)
     p += ":"
     
     fname = entry.get(str, p, allow_blank=True)
