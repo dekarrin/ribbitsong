@@ -1,4 +1,4 @@
-from typing import Optional, TypeVar
+from typing import Optional, TypeVar, Callable
 
 from .store import Model, FieldValue
 
@@ -10,7 +10,7 @@ def get_row(model: Model, prompt: Optional[str] = None) -> dict[str, FieldValue]
     if prompt is not None:
         print(prompt)
         
-    row = dict{}
+    row = {}
     for f in model:
         field = model[f]
         v = get(field.type, "{:s}:".format(field.name), allow_blank=True)
@@ -38,13 +38,13 @@ def confirm(prompt: Optional[str] = None) -> bool:
     return ch == "y" or ch == "yes"
     
     
-def get_choice(type_conv: Callable[[str], _T], prompt: Optional[str] = None, allow_blank: bool = False, *choices: list[_T]) -> _T:
+def get_choice(type_conv: Callable[[str], _T], *choices: list[_T], prompt: Optional[str] = None, allow_blank: bool = False) -> _T:
     """Prompt for choice until user enters valid one"""
     
     selected = None
     while selected is None:
         entered = get(type_conv, prompt, allow_blank)
-        if entered in choice:
+        if entered in choices:
             selected = entered
     
     return selected

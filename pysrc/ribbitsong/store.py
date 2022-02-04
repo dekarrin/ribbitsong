@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Any
+from typing import Callable, Optional, Any, Union
 import re
 
 SerializedPrimitive = Optional[Union[int, str, float, bool]]
@@ -6,7 +6,7 @@ SerializedValue = Union[SerializedPrimitive, list['SerializedValue'], dict[str, 
 SerializationVersion = 1
 WhereClause = Optional[Callable[[dict[str, Any]], bool]]
 
-FieldValue = SerializationPrimitive
+FieldValue = SerializedPrimitive
 Row = dict[str, FieldValue]
 
 _field_types = {
@@ -100,7 +100,7 @@ class Model:
             except Exception as e:
                 raise ValueError("fields[{:d}]: {:s}".format(idx, str(e)))
             if field.name in m:
-                raise ValueError("field {!r} has duplicate entries".format(field.name)
+                raise ValueError("field {!r} has duplicate entries".format(field.name))
             m.fields[field.name] = field
             
         return model
@@ -235,7 +235,7 @@ class FlexibleSchema:
         returns the rows selected.
         """
         if where is None:
-            where = lambda(r): True
+            where = lambda r: True
             
         ret_rows = list()
         for r in self.rows:
@@ -251,7 +251,7 @@ class FlexibleSchema:
         returns number of rows updated.
         """
         if where is None:
-            where = lambda(r): True            
+            where = lambda r: True            
 
         for col in set_columns:
             if col not in self._model:
@@ -276,7 +276,7 @@ class FlexibleSchema:
         returns number of rows dropped.
         """
         if where is None:
-            where = lambda(r): True
+            where = lambda r: True
         
         row_drops = list()
         for idx, r in enumerate(self.rows):
@@ -323,7 +323,7 @@ class FlexibleStore:
             except Exception as e:
                 raise ValueError("schemas[{:d}]: {:s}".format(idx, str(e)))
             if schema.name in self:
-                raise ValueError("schema {!r} has duplicate entries".format(field.name)
+                raise ValueError("schema {!r} has duplicate entries".format(field.name))
                 
             fs.schemas[schema.name] = schema
             

@@ -1,7 +1,7 @@
 from .version import Version
 from . import entry
 from .store import FlexibleStore
-from typing import Tuple
+from typing import Tuple, Optional
 
 import json
 
@@ -18,11 +18,7 @@ def show_main_menu():
     running = True
     
     while running:
-        print("---------------------------------------")
-        if active_schema is None:
-            print("(no active schema)")
-        else:
-            print("[" + active_schema + "]")
+        print("-" * 50)
             
         choices = {
             "model": "Model editing & viewing mode",
@@ -37,6 +33,13 @@ def show_main_menu():
         
         for c in choices:
             print("{:s} - {:s}".format(c, choices[c]))
+            
+        print("-" * 50)
+        if active_schema is None:
+            print("(no active schema)")
+        else:
+            print("[" + active_schema + "]")
+        print("-" * 50)
         
         choice = entry.get_choice(str.lower, prompt="Select operation: ", *choices)
         
@@ -94,7 +97,7 @@ def set_schema(store: FlexibleStore) -> Optional[str]:
     return schema
     
     
- def destroy_schema(store: FlexibleStore, schema: str) -> bool:
+def destroy_schema(store: FlexibleStore, schema: str) -> bool:
     if schema not in store:
         entry.pause("Schema {!r} does not exist".format(schema))
         return False
