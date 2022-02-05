@@ -23,7 +23,14 @@ class Form:
         self._cursor = -1
         self._in_multivalue = False
         
-    def add_field(self, name: str, type: Callable[[str], Any] = str, default: Optional[Any] = None, nullable: bool = False):
+    def add_field(
+        self,
+        name: str,
+        type: Callable[[str], Any] = str,
+        default: Optional[Any] = None,
+        nullable: bool = False,
+        multivalue_sentinel: Optional[str] = None
+    ):
         """
         Add a field to the form. The user is prompted to fill in fields in the order
         that they were added.
@@ -34,6 +41,9 @@ class Form:
         put through the type_conv function, so it should be the exact type that is desired for
         the field.
         :param nullable: Whether the field can be set to null.
+        :param multivalue_sentinel: Setting this marks the field as multivaled (list-valued).
+        When this is set, this is the sentinel value for terminating entry. The user is prompted
+        for values until they type the sentinel.
         """
         if name in self.fields:
             raise ValueError("Field named {!r} already exists in this form".format(name))
@@ -47,6 +57,7 @@ class Form:
             'type': type,
             'default': default,
             'nullable': nullable,
+            'multivalue': multivalue_sentinel
         }
         
         self.fields[name] = f
@@ -62,6 +73,8 @@ class Form:
         
         :param name: The name of the field. This must be unique within this Form.
         :param nullable: Whether the field can be set to null.
+        :param multivalued: Whether this field's value is a list of the given type. The user is prompted
+        for values until they type the sentinel.
         """
         if name in self.fields:
             raise ValueError("Field named {!r} already exists in this form".format(name))
@@ -179,7 +192,7 @@ class Form:
         # before incrementing
         if self._cursor > -1 and self._cursor < len(self.order):
             f = self.fields[self.order[self._cursor]]
-            if f['field_type'] == 'object' and f['field']._has_more_prompts:
+            if f['field_type'] == 'object' and f['form']._has_more_prompts():
                 index = self._cursor
             else:
                 index = self._cursor + 1
@@ -190,6 +203,7 @@ class Form:
             raise ValueError("no more questions to ask about; reset the form first".format(index))
             
         f = self.fields[self.order[index]]
+        self._cursor = index
         
         if f['field_type'] == 'simple':
             got_valid = False
@@ -227,7 +241,6 @@ class Form:
                 except ValueError:
                     pass
                     
-            self._cursor = index
             return list(parents + [f['name']]), value
         elif f['field_type'] == 'object':
             subform = f['form']
@@ -238,7 +251,7 @@ class Form:
             if f['nullable'] and subform._cursor == -1:
                 if not entry.confirm("{:s} is nullable. Enter value for it?".format(full_path)):
                     subform._cursor_to_end()
-                    return list(parents + f['name']), None
+                    return list(parents + [f['name']]), None
             
             subform_parents = list(parents)
             subform_parents.append(f['name'])

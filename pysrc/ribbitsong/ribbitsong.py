@@ -212,7 +212,7 @@ def load_db(default: str) -> Tuple[FlexibleStore, str]:
 def enter_data():
     form = Form()
     
-    name_form = form.add_object_field("name")
+    name_form = form.add_object_field("name", nullable=True)
     name_form.add_field("first")
     name_form.add_field("last")
     
