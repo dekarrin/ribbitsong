@@ -1,10 +1,23 @@
 from .version import Version
 from . import entry
 from .store import FlexibleStore
+from .forms import Form
 from typing import Tuple, Optional
 
 import json
 
+
+def show_model_menu(store: FlexibleStore, schema: str):
+    
+    while running:
+        print("Model")
+        print("-" * 50)
+        
+        choices = {
+            "list": "List the columns in this model",
+            "drop": "Drop a column from the model",
+            "add": "Add a new column to the model",
+        }
 
 def show_main_menu():
     active_schema = None
@@ -47,7 +60,7 @@ def show_main_menu():
         if choice == "model":
             entry.pause("Not yet ready")
         elif choice == "data":
-            entry.pause("Not yet ready")
+            enter_data()
         elif choice == "schema":
             len_before = len(cur_store)
             schema = set_schema(cur_store)
@@ -195,3 +208,19 @@ def load_db(default: str) -> Tuple[FlexibleStore, str]:
     
     entry.pause("Loaded {!r}".format(fname))
     return store, fname
+
+def enter_data():
+    form = Form()
+    
+    name_form = form.add_object_field("name")
+    name_form.add_field("first")
+    name_form.add_field("last")
+    
+    form.add_field("age", type=int)
+    
+    data = form.fill()
+    
+    import pprint
+    
+    pprint.pprint(data)
+    

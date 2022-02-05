@@ -17,7 +17,6 @@ _field_types = {
 }
 
 
-_identifier_re = re.compile(r'[A-Za-z_][A-Za-z0-9_]*')
 
 
 class FieldDef:
@@ -104,21 +103,6 @@ class Model:
             m.fields[field.name] = field
             
         return m
-        
-    def __getitem__(self, key):
-        return self.fields[key]
-        
-    def __delitem__(self, key):
-        del self.fields[key]
-        
-    def __len__(self):
-        return len(self.fields)
-        
-    def __iter__(self):
-        return iter(self.fields)
-        
-    def __contains__(self, item):
-        return item in self.fields
         
         
 class FlexibleSchema:
