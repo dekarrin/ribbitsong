@@ -74,7 +74,32 @@ class Form:
         self.fields[name] = f
         self.order.append(name)
         
-    def add_object_field(self, name: str, nullable: bool = False, multivalue: bool = False, sentinel: str = "done") -> 'Form':
+    def add_choice_field(
+        self,
+        name: str,
+        choices: list[str],
+        default: Optional[Any] = None,
+        nullable: bool = False,
+        multivalue: bool = False,
+        sentinel: str = "done",
+    ):
+        """Syntactic sugar for adding a str-type field that only allows certain values."""        
+        if multivalue and sentinel in choices:
+            raise ValueError("sentinel {!r} must not be present in choices list of multivalued choice field".format(sentinel))
+        if default is not None and default not in choices:
+            raise ValueError("default value {!r} must be present in choices list of choice field".format(sentinel))
+        
+        choices = list(choices)  # prevent caller from mutating this list
+        def choice_checker(value: str) -> str:
+            if value not in choices:
+                msg = "Value must be one of: "
+                msg += ','.join(repr(c) for c in choices)
+                raise ValueError(msg)
+            return value
+            
+        return self.add_field(name, choice_checker, default, nullable, multivalue, sentinel)
+        
+    def add_object_field(self, name: str, nullable: bool = False, multivalue: bool = False) -> 'Form':
         """
         Add a field that is itself a series of properties. This can be used for making a
         particular field represent an entire object.
@@ -91,33 +116,88 @@ class Form:
         until the sentinel value is entered. A multivalue field is represented by a non-nullable
         array, and the 'nullable' parameter refers to whether it accepts null values as members
         of the list.
-        :param sentinel: This is the value that the user must enter to terminate a multivalue
-        entry. TODO: this does nothing in an object field because we have to explicitly ask.
         """
         if name in self.fields:
             raise ValueError("Field named {!r} already exists in this form".format(name))
         
         if _identifier_re.match(name) is None:
             raise ValueError("Field name is not a valid identifier: {!r}".format(name))
-            
-        if multivalue:
-            if sentinel == "":
-                raise ValueError("sentinel cannot be an empty string for multivalued form fields.")
         
         subform = Form(self.name + "." + name)
         
         f = {
             'field_type': 'object',
+            'polymorphic': False,
             'name': name,
             'form': subform,
             'nullable': nullable,
             'multivalue': multivalue,
-            'sentinel': sentinel
         }
         
         self.fields[name] = f
         self.order.append(name)
         return subform
+        
+    def add_polymorphic_object_field(
+        self,
+        name: str,
+        type_choices: list[str],
+        type_field: str = "type",
+        default_type: Optional[str] = None,
+        nullable: bool = False,
+        multivalue: bool = False
+    ):
+        """
+        Adds an object field that can change the type of object that is entered based on
+        the answer to the first question (the 'type_field'). This field is automatically
+        added to each returned subfield and is included in the returned data.
+        
+        Return a number of subforms corresponding to each of the type choices.
+        """
+        if name in self.fields:
+            raise ValueError("Field named {!r} already exists in this form".format(name))
+        
+        if _identifier_re.match(name) is None:
+            raise ValueError("Field name is not a valid identifier: {!r}".format(name))
+        
+        if _identifier_re.match(type_field) is None:
+            raise ValueError("Type field name is not a valid identifier: {!r}".format(type_field))
+            
+        if default_type is not None and default_type not in type_choices:
+            raise ValueError("Default type not in the listed choices: {!r}".format(default_type)) 
+            
+        if len(type_choices) < 2:
+            raise ValueError("Polymorphic object field must use at least 2 different types")
+            
+        if len(set(type_choices)) != len(type_choices):
+            raise ValueError("Every choice of type for polymorphic object must be unique")
+            
+        subforms = {}
+        subforms_list = []
+        dummy_first_form = None
+        for ch in type_choices:
+            if ch == "":
+                raise ValueError("blank type choice not allowed. Use type default instead")
+            form = Form(self.name + "." + name)
+            form.add_choice_field(type_field, type_choices, default=default_type)
+            subforms[ch] = form
+            subforms_list.append(form)
+            dummy_first_form = form
+        
+        f = {
+            'field_type': 'object',
+            'polymorphic': True,
+            'name': name,
+            'types': subforms,
+            'form': dummy_first_form,
+            'nullable': nullable,
+            'multivalue': multivalue,
+        }
+        
+        self.fields[name] = f
+        self.order.append(name)
+        
+        return subforms_list
         
     def remove(self, field_name: str):
         """
@@ -194,6 +274,9 @@ class Form:
         for fname in self.fields:
             f = self.fields[fname]
             if f['field_type'] == 'object':
+                if f['polymorphic']:
+                    for option in f['types']:
+                        f['types'][option]._reset()
                 f['form']._reset()
         
     def _has_more_prompts(self) -> bool:
@@ -266,7 +349,7 @@ class Form:
         f = self.fields[self.order[index]]
         self._cursor = index
         
-        multivalue, sentinel = f['multivalue'], f['sentinel']
+        multivalue = f['multivalue']
         if multivalue:
             if not self._in_multivalue:
                 # we are entering a multivalue field for the first time
@@ -277,9 +360,9 @@ class Form:
         path_comps = list(parents + [f['name']])
         full_path = '.'.join(path_comps)
         
-        print("-------------")
-        
         if f['field_type'] == 'simple':
+            print("-------------")
+            sentinel = f['sentinel']
             got_valid = False
             while not got_valid:
                 if self._in_multivalue:
@@ -321,8 +404,8 @@ class Form:
                 try:
                     value = f['type'](str_input)
                     got_valid = True
-                except ValueError:
-                    pass
+                except ValueError as e:
+                    print("Error: " + str(e))
                     
             if multivalue:
                 path_comps += ["[" + str(self._multivalue_index) + "]"]
@@ -353,6 +436,13 @@ class Form:
                     return path_comps, None
                     
             comps, value = subform._ask(path_comps)
+            # check if we just got the type for a polymorphic object
+            if f['polymorphic'] and subform._cursor == 0:  # it is guaranteed to be the first question
+                selected_subform = f['types'][value]
+                selected_subform._reset()
+                selected_subform._cursor = 0
+                f['form'] = selected_subform
+            
             if self._in_multivalue and not subform._has_more_prompts():
                 subform._reset()
             return comps, value

@@ -7,17 +7,52 @@ from typing import Tuple, Optional
 import json
 
 
-def show_model_menu(store: FlexibleStore, schema: str):
-    
+def show_data_menu():
+    unsaved_mutations = False
+    last_filename = None
+    running = True
     while running:
-        print("Model")
+        print("Data")
+        print("-" * 50)
+        last_filename = None
+        choices = {
+            "enter": "Enter data into the collection",
+            "save": "Save the collection to disk",
+            "load": "Load a collection from disk",
+            "back": "Go back to the main menu",
+        }
+        
+        for c in choices:
+            print("{:s} - {:s}".format(c, choices[c]))
+        
         print("-" * 50)
         
-        choices = {
-            "list": "List the columns in this model",
-            "drop": "Drop a column from the model",
-            "add": "Add a new column to the model",
-        }
+        choice = entry.get_choice(str.lower, prompt="Select operation: ", *choices)
+        
+        if choice == "back":
+            if unsaved_mutations:
+                print("There are unsaved changes in the data!")
+                if not entry.confirm("Are you sure you want to exit data mode discard the changes?"):
+                    continue
+            running = False
+        elif choice == "save":
+            saved_fname = save_dataset(dataset, last_filename)
+            if saved_fname is not None:
+                unsaved_mutations = False
+                last_filename = saved_fname
+        elif choice == "load":
+            if unsaved_mutations:
+                print("There are unsaved changes in the dataset!")
+                if not entry.confirm("Are you sure you want to load a new dataset and discard the changes?"):
+                    continue
+            
+            loaded_dataset, loaded_fname = load_dataset(last_filename)
+            if loaded_dataset is not None:
+                dataste = loaded_dataset
+                last_filename = loaded_fname
+                unsaved_mutations = False
+        elif choice == "enter":
+            enter_data()
 
 def show_main_menu():
     active_schema = None
@@ -60,7 +95,7 @@ def show_main_menu():
         if choice == "model":
             entry.pause("Not yet ready")
         elif choice == "data":
-            enter_data()
+            show_data_menu()
         elif choice == "schema":
             len_before = len(cur_store)
             schema = set_schema(cur_store)
@@ -148,6 +183,35 @@ def list_schemas(store: FlexibleStore):
     entry.pause()
 
 
+def save_dataset(dataset: dict, default: str) -> str:
+    """
+    Save dataset to disk. Prompt for filename, using the passed in one as the default.
+    
+    Return the selected filename after save has completed.
+    """
+    p = "Enter filename to save to"
+    if default is not None:
+        p += " (default: {!r})".format(default)
+    p += ":"
+    
+    fname = entry.get(str, p, allow_blank=True)
+    if fname == "":
+        fname = default
+    
+    try:
+        with open(fname, 'w') as fp:
+            json.dump(dataset, fp, indent=4, sort_keys=True)
+    except Exception as e:
+        print("Could not save to {!r}:".format(fname))
+        print(str(e))
+        entry.pause()
+        return None
+        
+    print("Saved to {!r}".format(fname))
+    entry.pause()
+    return fname
+
+
 def save_db(store: FlexibleStore, default: str) -> str:
     """
     Save DB to disk. Prompt for filename, using the passed in one as the default.
@@ -208,12 +272,58 @@ def load_db(default: str) -> Tuple[FlexibleStore, str]:
     
     entry.pause("Loaded {!r}".format(fname))
     return store, fname
+    
 
-def enter_data():
+def load_dataset(default: str) -> Tuple[dict, str]:
+    p = "Enter filename to load from"
+    if default is not None:
+        p += " (default: {!r})".format(default)
+    p += ":"
+    
+    fname = entry.get(str, p, allow_blank=True)
+    if fname == "":
+        fname = default
+    
+    try:
+        with open(fname, 'r') as fp:
+            dataset = json.load(fp)
+    except Exception as e:
+        print("Could not load from {!r}:".format(fname))
+        print(str(e))
+        entry.pause()
+        return None, None
+    
+    entry.pause("Loaded {!r}".format(fname))
+    return dataset, fname
+
+def enter_data() -> list[dict]:
+    """
+    Return a list of the event points entered.
+    """
+    
     form = Form()
     
-    name_form = form.add_field("name", nullable=True, multivalue=True)
-    form.add_field("age", type=int)
+    pform, aform = form.add_polymorphic_object_field("jack", ["person", "animal"])
+    pform.add_field("name")
+    pform.add_field("age", type=int)
+    pform.add_field("hobby")
+    aform.add_field("name")
+    aform.add_field("cry")
+    
+    #event_form = form.add_object_field("events", multivalue=True)
+    
+    #event_form.add_field("name")
+    #event_form.add_field("description")
+    #event_form.add_field("
+    
+    #univ_form = event_form.add_object_field("universes", multivalue=True)
+    #univ_form.add_field("name")
+    #univ_form.add_field("timeline")
+    #univ_form.add_field("location")
+    #univ_form.add_field("characters", multivalue=True)
+    #univ_form.add_field("items", multivalue=True)
+    
+    
     
     data = form.fill()
     
