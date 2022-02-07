@@ -295,6 +295,107 @@ def load_dataset(default: str) -> Tuple[dict, str]:
     
     entry.pause("Loaded {!r}".format(fname))
     return dataset, fname
+    
+    
+def create_event_tag_field(parent_form, field_name, multivalue=False, nullable=False):
+    types = [
+        "appearance_changed",
+        "state_changed",
+        "char_obtains_item",
+        "char_drops_item",
+        "char_uses_item",
+        "char_gives_item_to_char",
+        "char_dies",
+        "char_born",
+        "char_resurrected",
+        "char_ports_in",
+        "char_ports_out",
+        "char_enters_location",
+        "char_exits_location",
+        "char_falls_asleep",
+        "char_wakes_up",
+    ]
+    
+    tag_forms = parent_form.add_polymorphic_object_field(field_name, types, multivalue=multivalue, nullable=nullable)
+    
+    appearance_changed_form = tag_forms[0]
+    appearance_changed_form.add_field("recipient")
+    appearance_changed_form.add_field("appearance")
+    
+    state_changed_form = tag_forms[1]
+    state_changed_form.add_field("recipient")
+    state_changed_form.add_field("property")
+    state_changed_form.add_field("value")
+    
+    char_obtains_item_form = tag_forms[2]
+    char_obtains_item.add_field("character")
+    char_obtains_item.add_field("item")
+    
+    char_drops_item_form = tag_forms[3]
+    char_drops_item_form.add_field("character")
+    char_drops_item_form.add_field("item")
+    
+    char_uses_item_form = tag_forms[4]
+    char_uses_item_form.add_field("character")
+    char_uses_item_form.add_field("item")
+    char_uses_item_form.add_field("consumed", type=bool)
+    
+    char_gives_item_form = tag_forms[5]
+    char_gives_item_form.add_field("giver")
+    char_gives_item_form.add_field("receiver")
+    char_gives_item_form.add_field("item")
+    
+    char_dies_form = tag_forms[6]
+    char_dies_form.add_field("character")
+    
+    char_born_form = tag_forms[7]
+    char_born_form.add_field("character")
+    
+    char_resurrected_form = tag_forms[8]
+    char_resurrected_form.add_field("character")
+    
+    char_ports_in_form = tag_forms[9]
+    char_ports_in_form.add_field("character")
+    char_ports_in_form.add_field("port_out_event", nullable=True)
+    
+    char_ports_out_form = tag_forms[10]
+    char_ports_out_form.add_field("character")
+    char_ports_out_form.add_field("port_in_event", nullable=True)
+    
+    char_enters_form = tag_forms[11]
+    char_enters_form.add_field("character")
+    
+    char_exits_form = tag_forms[12]
+    char_exits_form.add_field("character")
+    
+    char_falls_asleep_form = tag_forms[13]
+    char_falls_asleep_form.add_field("character")
+    
+    char_wakes_up_form = tag_forms[14]
+    char_wakes_up_form.add_field("character")
+    
+    
+def create_citation_field(parent_form, field_name, multivalue=False, nullable=False):
+    types = ["dialog", "narration", "media", "commentary"]
+    citation_forms = parent_form.add_polymorphic_object_field(field_name, types, multivalue=multivalue, nullable=nullable)
+    cite_dialog_form, cite_narration_form, cite_media_form, cite_commentary_form = citation_forms
+    cite_dialog_form.add_field("work")
+    cite_dialog_form.add_field("panel", type=int)
+    cite_dialog_form.add_field("line", type=int)
+    cite_dialog_form.add_field("character")
+    
+    cite_narration_form.add_field("work")
+    cite_narration_form.add_field("panel", type=int)
+    cite_narration_form.add_field("paragraph", type=int)
+    cite_narration_form.add_field("sentence", type=int)
+    
+    cite_media_form.add_field("work")
+    cite_media_form.add_field("panel", type=int)
+    cite_media_form.add_field("timestamp")
+    
+    cite_commentary_form.add_field("work")
+    cite_commentary_form.add_field("volume", type=int)
+    cite_commentary_form.add_field("page", type=int)
 
 def enter_data() -> list[dict]:
     """
@@ -303,25 +404,21 @@ def enter_data() -> list[dict]:
     
     form = Form()
     
-    pform, aform = form.add_polymorphic_object_field("jack", ["person", "animal"])
-    pform.add_field("name")
-    pform.add_field("age", type=int)
-    pform.add_field("hobby")
-    aform.add_field("name")
-    aform.add_field("cry")
+    event_form = form.add_object_field("events", multivalue=True)
     
-    #event_form = form.add_object_field("events", multivalue=True)
+    event_form.add_auto_uuid_field("id")
+    event_form.add_field("name")
+    event_form.add_field("description")
+    create_citation_field(event_form, "citations", multivalue=True)
+    create_citation_field(event_form, "portrayed_in", nullable=True)
+    create_event_tag_field(event_form, "tags", multivalue=True)
     
-    #event_form.add_field("name")
-    #event_form.add_field("description")
-    #event_form.add_field("
-    
-    #univ_form = event_form.add_object_field("universes", multivalue=True)
-    #univ_form.add_field("name")
-    #univ_form.add_field("timeline")
-    #univ_form.add_field("location")
-    #univ_form.add_field("characters", multivalue=True)
-    #univ_form.add_field("items", multivalue=True)
+    univ_form = event_form.add_object_field("universes", multivalue=True)
+    univ_form.add_field("name")
+    univ_form.add_field("timeline")
+    univ_form.add_field("location")
+    univ_form.add_field("characters", multivalue=True)
+    univ_form.add_field("items", multivalue=True)
     
     
     

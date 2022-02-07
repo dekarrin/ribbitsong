@@ -24,6 +24,26 @@ class Form:
         self._in_multivalue = False
         self._multivalue_index = -1
         
+    def add_auto_uuid_field(self, name: str):
+        """
+        Add a field whose value is automatically filled in with an auto-generated type 4 UUID.
+        """
+        if name in self.fields:
+            raise ValueError("Field named {!r} already exists in this form".format(name))
+        
+        if _identifier_re.match(name) is None:
+            raise ValueError("Field name is not a valid identifier: {!r}".format(name))
+            
+        f = {
+            'field_type': 'autouuid',
+            'name': name,
+            'nullable': False,
+            'multivalue': False
+        }
+        
+        self.fields[name] = f
+        self.order.append(name)
+        
     def add_field(
         self,
         name: str,
@@ -60,6 +80,18 @@ class Form:
         if multivalue:
             if sentinel == "":
                 raise ValueError("sentinel cannot be an empty string for multivalued form fields.")
+            
+        # swap in a custom bool handler
+        if type == bool:
+            def bool_conv(s: str) -> bool:
+                s = s.lower()
+                if s == "yes" or s == "y" or s == "true" or s == "t" or s == 1 or s == "on":
+                    return True
+                elif s == "no" or s == "n" or s == "false" or s == "f" or s == 0 or s == "off":
+                    return False
+                else:
+                    raise ValueError("value must yes or no")
+            type = bool_conv
             
         f = {
             'field_type': 'simple',
@@ -360,7 +392,14 @@ class Form:
         path_comps = list(parents + [f['name']])
         full_path = '.'.join(path_comps)
         
-        if f['field_type'] == 'simple':
+        if f['field_type'] == 'autouuid':
+            value = str(uuid.uuid4())
+                    
+            if multivalue:
+                path_comps += ["[" + str(self._multivalue_index) + "]"]
+                return path_comps, value
+            
+        elif f['field_type'] == 'simple':
             print("-------------")
             sentinel = f['sentinel']
             got_valid = False
@@ -399,7 +438,7 @@ class Form:
                 if multivalue and str_input == sentinel:
                     self._in_multivalue = False
                     self._multivalue_index = -1
-                    return list(parents + [f['name']] + ["[None]"]), None
+                    return list(path_comps + ["[None]"]), None
                 
                 try:
                     value = f['type'](str_input)
