@@ -11,7 +11,7 @@ def show_data_menu():
     unsaved_mutations = False
     last_filename = None
     running = True
-    dataset = {}
+    dataset = {'events': []}
     while running:
         print("Data")
         print("-" * 50)

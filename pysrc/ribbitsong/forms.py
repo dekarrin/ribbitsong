@@ -369,6 +369,13 @@ class Form:
         # before incrementing
         if self._cursor > -1 and self._cursor < len(self.order):
             f = self.fields[self.order[self._cursor]]
+            print()
+            print("FOR PREV {!r}".format(','.join(parents + [f['name']])))
+            print("IN MULTI: " + str(self._in_multivalue))
+            
+            print("index: " + str(index))
+            print("field-type: " + str(f['field_type']))
+            print("has-more: " + str(f['form']._has_more_prompts()) if f['field_type'] == 'object' else "N/A")
             if f['field_type'] != 'object' or not f['form']._has_more_prompts():
                 if not self._in_multivalue:
                     index += 1
@@ -459,6 +466,8 @@ class Form:
                 if not entry.confirm("{:s} is a list of values. Enter another one?".format(full_path)):
                     # this is treated as hitting a sentinel
                     path_comps += ["[None]"]
+                    self._in_multivalue = False
+                    self._cursor += 1
                     return path_comps, None
             
             if multivalue:
@@ -473,6 +482,8 @@ class Form:
                         subform._reset()
                     else:
                         subform._cursor_to_end()
+                    
+                    self._cursor += 1
                     return path_comps, None
                     
             comps, value = subform._ask(path_comps)
@@ -482,7 +493,9 @@ class Form:
                 selected_subform._reset()
                 selected_subform._cursor = 0
                 f['form'] = selected_subform
-            
+                if not selected_subform._has_more_prompts():
+                    selected_subform._reset()
+                
             if self._in_multivalue and not subform._has_more_prompts():
                 subform._reset()
             return comps, value
