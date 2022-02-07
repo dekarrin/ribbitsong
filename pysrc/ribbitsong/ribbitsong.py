@@ -11,6 +11,7 @@ def show_data_menu():
     unsaved_mutations = False
     last_filename = None
     running = True
+    dataset = {}
     while running:
         print("Data")
         print("-" * 50)
@@ -48,11 +49,14 @@ def show_data_menu():
             
             loaded_dataset, loaded_fname = load_dataset(last_filename)
             if loaded_dataset is not None:
-                dataste = loaded_dataset
+                dataset = loaded_dataset
                 last_filename = loaded_fname
                 unsaved_mutations = False
         elif choice == "enter":
-            enter_data()
+            events = enter_data()
+            for e in events:
+                dataset['events'].append(e)
+        
 
 def show_main_menu():
     active_schema = None
@@ -328,8 +332,8 @@ def create_event_tag_field(parent_form, field_name, multivalue=False, nullable=F
     state_changed_form.add_field("value")
     
     char_obtains_item_form = tag_forms[2]
-    char_obtains_item.add_field("character")
-    char_obtains_item.add_field("item")
+    char_obtains_item_form.add_field("character")
+    char_obtains_item_form.add_field("item")
     
     char_drops_item_form = tag_forms[3]
     char_drops_item_form.add_field("character")
@@ -396,7 +400,55 @@ def create_citation_field(parent_form, field_name, multivalue=False, nullable=Fa
     cite_commentary_form.add_field("work")
     cite_commentary_form.add_field("volume", type=int)
     cite_commentary_form.add_field("page", type=int)
+    
 
+def create_constraint_field(parent_form, field_name, multivalue=False, nullable=False):
+    types = [
+        "narrative_immediate",
+        "narrative_jump",
+        "narrative_entrypoint",
+        "narrative_causal",
+        "absolute",
+        "relative",
+        "causal",
+        "sync",
+    ]
+
+    constraint_forms = parent_form.add_polymorphic_object_field(field_name, types, multivalue=multivalue, nullable=nullable)
+    
+    immediate_form = constraint_forms[0]
+    immediate_form.add_field("ref_event")
+    immediate_form.add_field("is_after", type=bool, default=True)
+    
+    jump_form = constraint_forms[1]
+    jump_form.add_field("ref_event")
+    jump_form.add_field("is_after", type=bool, default=True)
+    
+    entrypoint_form = constraint_forms[2]
+    # there is no additional data
+    
+    narrative_causal_form = constraint_forms[3]
+    narrative_causal_form.add_field("ref_event")
+    narrative_causal_form.add_field("is_after", type=bool, default=True)
+    
+    abs_form = constraint_forms[4]
+    abs_form.add_field("time")
+    create_citation_field(abs_form, "citation", nullable=False)
+    
+    relative_form = constraint_forms[5]
+    relative_form.add_field("ref_event")
+    relative_form.add_field("is_after", type=bool, default=True)
+    relative_form.add_field("distance")
+    create_citation_field(relative_form, "citation", nullable=False)
+    
+    causal_form = constraint_forms[6]
+    causal_form.add_field("time")
+    create_citation_field(causal_form, "citation", nullable=False)
+    
+    sync_form = constraint_forms[7]
+    sync_form.add_field("ref_event")
+    create_citation_field(sync_form, "citation", nullable=False)
+    
 def enter_data() -> list[dict]:
     """
     Return a list of the event points entered.
@@ -412,6 +464,7 @@ def enter_data() -> list[dict]:
     create_citation_field(event_form, "citations", multivalue=True)
     create_citation_field(event_form, "portrayed_in", nullable=True)
     create_event_tag_field(event_form, "tags", multivalue=True)
+    create_constraint_field(event_form, "constraints", multivalue=True)
     
     univ_form = event_form.add_object_field("universes", multivalue=True)
     univ_form.add_field("name")
@@ -420,11 +473,7 @@ def enter_data() -> list[dict]:
     univ_form.add_field("characters", multivalue=True)
     univ_form.add_field("items", multivalue=True)
     
-    
-    
     data = form.fill()
     
-    import pprint
-    
-    pprint.pprint(data)
+    return data['events']
     

@@ -1,5 +1,6 @@
 import re
 from typing import Optional, Callable, Any, Tuple
+import uuid
 
 from . import entry
 
@@ -387,17 +388,17 @@ class Form:
                 # we are entering a multivalue field for the first time
                 self._in_multivalue = True
                 self._multivalue_index = -1
-            self._multivalue_index += 1
+            if f['field_type'] != 'object' or f['form']._cursor == -1:
+                self._multivalue_index += 1
         
         path_comps = list(parents + [f['name']])
         full_path = '.'.join(path_comps)
         
         if f['field_type'] == 'autouuid':
             value = str(uuid.uuid4())
-                    
             if multivalue:
                 path_comps += ["[" + str(self._multivalue_index) + "]"]
-                return path_comps, value
+            return path_comps, value
             
         elif f['field_type'] == 'simple':
             print("-------------")
@@ -407,7 +408,7 @@ class Form:
                 if self._in_multivalue:
                     full_path += "[" + str(self._multivalue_index) + "]"
                 
-                prompt = full_path
+                prompt = full_path.replace('.[', '[')
                 if f['default'] is not None:
                     prompt += " (default: {!r})".format(f['default'])
   
@@ -457,7 +458,7 @@ class Form:
             if multivalue and subform._cursor == -1:
                 if not entry.confirm("{:s} is a list of values. Enter another one?".format(full_path)):
                     # this is treated as hitting a sentinel
-                    path_comps += "[None]"
+                    path_comps += ["[None]"]
                     return path_comps, None
             
             if multivalue:

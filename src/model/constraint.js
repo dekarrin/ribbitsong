@@ -50,7 +50,7 @@ class RelativeConstraint extends Constraint {
     super(ConstraintTypes.RELATIVE);
     this.citation = citation;
     this.refEvent = parseInt(refEvent, 10);
-    this.isAFter = !!isAfter;
+    this.isAfter = !!isAfter;
     this.distance = distance;
   }
 };
@@ -110,7 +110,7 @@ class NarrativeJumpConstraint extends Constraint {
 // sequences are skipped in the data-gathering portion.
 class NarrativeCausalConstraint extends Constraint {
   constructor(refEvent, isAfter=true) {
-    super(ConstraintTypes.NARRATIVE_JUMP);
+    super(ConstraintTypes.NARRATIVE_CAUSAL);
 
     this.refEvent = parseInt(refEvent, 10);
     this.isAfter = !!isAfter;
