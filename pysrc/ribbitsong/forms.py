@@ -22,6 +22,7 @@ class Form:
         self.order: list[str] = []
         self._cursor = -1
         self._in_multivalue = False
+        self._multivalue_index = -1
         
     def add_field(
         self,
@@ -29,7 +30,8 @@ class Form:
         type: Callable[[str], Any] = str,
         default: Optional[Any] = None,
         nullable: bool = False,
-        multivalue_sentinel: Optional[str] = None
+        multivalue: bool = False,
+        sentinel: str = "done"
     ):
         """
         Add a field to the form. The user is prompted to fill in fields in the order
@@ -41,9 +43,13 @@ class Form:
         put through the type_conv function, so it should be the exact type that is desired for
         the field.
         :param nullable: Whether the field can be set to null.
-        :param multivalue_sentinel: Setting this marks the field as multivaled (list-valued).
-        When this is set, this is the sentinel value for terminating entry. The user is prompted
-        for values until they type the sentinel.
+        :param multivalue: Marks the field as multivalued (list-valued). When set to
+        True, then during form filling the user is prompted for multiple values for this field
+        until the sentinel value is entered. A multivalue field is represented by a non-nullable
+        array, and the 'nullable' parameter refers to whether it accepts null values as members
+        of the list.
+        :param sentinel: This is the value that the user must enter to terminate a multivalue
+        entry.
         """
         if name in self.fields:
             raise ValueError("Field named {!r} already exists in this form".format(name))
@@ -51,19 +57,24 @@ class Form:
         if _identifier_re.match(name) is None:
             raise ValueError("Field name is not a valid identifier: {!r}".format(name))
             
+        if multivalue:
+            if sentinel == "":
+                raise ValueError("sentinel cannot be an empty string for multivalued form fields.")
+            
         f = {
             'field_type': 'simple',
             'name': name,
             'type': type,
             'default': default,
             'nullable': nullable,
-            'multivalue': multivalue_sentinel
+            'multivalue': multivalue,
+            'sentinel': sentinel
         }
         
         self.fields[name] = f
         self.order.append(name)
         
-    def add_object_field(self, name: str, nullable: bool = False) -> 'Form':
+    def add_object_field(self, name: str, nullable: bool = False, multivalue: bool = False, sentinel: str = "done") -> 'Form':
         """
         Add a field that is itself a series of properties. This can be used for making a
         particular field represent an entire object.
@@ -75,12 +86,23 @@ class Form:
         :param nullable: Whether the field can be set to null.
         :param multivalued: Whether this field's value is a list of the given type. The user is prompted
         for values until they type the sentinel.
+        :param multivalue: Marks the field as multivalued (list-valued). When set to
+        True, then during form filling the user is prompted for multiple values for this field
+        until the sentinel value is entered. A multivalue field is represented by a non-nullable
+        array, and the 'nullable' parameter refers to whether it accepts null values as members
+        of the list.
+        :param sentinel: This is the value that the user must enter to terminate a multivalue
+        entry. TODO: this does nothing in an object field because we have to explicitly ask.
         """
         if name in self.fields:
             raise ValueError("Field named {!r} already exists in this form".format(name))
         
         if _identifier_re.match(name) is None:
             raise ValueError("Field name is not a valid identifier: {!r}".format(name))
+            
+        if multivalue:
+            if sentinel == "":
+                raise ValueError("sentinel cannot be an empty string for multivalued form fields.")
         
         subform = Form(self.name + "." + name)
         
@@ -89,6 +111,8 @@ class Form:
             'name': name,
             'form': subform,
             'nullable': nullable,
+            'multivalue': multivalue,
+            'sentinel': sentinel
         }
         
         self.fields[name] = f
@@ -123,13 +147,38 @@ class Form:
             cur = filled
             for idx, field_name in enumerate(path):
                 if idx + 1 >= len(path):
-                    # if this is the last path component, directly assign it to cur
-                    cur[field_name] = value
+                    # if this is the last path component, directly assign it to cur.
+                    
+                    if field_name.startswith('['):
+                        # it is actually an array digit OR the user has entered the sentinel value
+                        if field_name == '[None]':  # TODO: this should probably be a module-level constant
+                            # nothing to do, the user gave a sentinel not actual data
+                            continue
+                        array_index = int(field_name[1:-1])
+                        while len(cur) < array_index:
+                            cur.append(None)
+                        if len(cur) == array_index:
+                            cur.append(value)
+                    else:
+                        cur[field_name] = value
                 else:
-                    # otherwise, this path component specifies a dict to be added
-                    if field_name not in cur:
-                        cur[field_name] = dict()
-                    cur = cur[field_name]
+                    # otherwise, this path component specifies a dict or array to be added
+                    if field_name.startswith('['):
+                        # it is actually an array digit
+                        array_index = int(field_name[1:-1])
+                        while len(cur) < array_index + 1:
+                            if path[idx + 1].startswith('['):
+                                cur.append(list())
+                            else:
+                                cur.append(dict())
+                        cur = cur[array_index]
+                    else:
+                        if field_name not in cur:
+                            if path[idx + 1].startswith('['):
+                                cur[field_name] = list()
+                            else:
+                                cur[field_name] = dict()
+                        cur = cur[field_name]
                     
         self._reset()
         return filled
@@ -140,6 +189,7 @@ class Form:
         """
         self._cursor_to_start()
         self._in_multivalue = False
+        self._multivalue_index = -1
         
         for fname in self.fields:
             f = self.fields[fname]
@@ -168,7 +218,14 @@ class Form:
         fname = self.order[self._cursor]
         if self.fields[fname]['field_type'] == 'object':
             subform = self.fields[fname]['form']
-            return subform._has_more_prompts()
+            if subform._has_more_prompts():
+                return True
+        
+        # or if we are waiting for multivalue:
+        if self._in_multivalue:
+            return True
+        
+        return False
         
         
     def _ask(self, parents: list[str]) -> Tuple[list[str], Any]:
@@ -180,6 +237,8 @@ class Form:
         :param parents: Parents of this field. Used for subform field identification.
         The top-level fields will have this be an empty list.
         :return: The full field path retrieved and the value that the user entered for it.
+        If the user entered the sentinel while being prompted for a multi-valued item,
+        the full field path with an index of [None] is returned.
         :raises ValueError: If neither index or field are set to valid values, or if
         neither are set and a previous call to ask() resulted in the last field being
         prompted for.
@@ -187,17 +246,19 @@ class Form:
         if len(self.order) < 1:
             raise ValueError("no fields to ask about")
             
+        index = self._cursor
+        
         # if cursor is currently pointing to a valid field,
         # check whether it is a subfield that has more questions
         # before incrementing
         if self._cursor > -1 and self._cursor < len(self.order):
             f = self.fields[self.order[self._cursor]]
-            if f['field_type'] == 'object' and f['form']._has_more_prompts():
-                index = self._cursor
-            else:
-                index = self._cursor + 1
+            if f['field_type'] != 'object' or not f['form']._has_more_prompts():
+                if not self._in_multivalue:
+                    index += 1
         else:
-            index = self._cursor + 1
+            if not self._in_multivalue:
+                index += 1
         
         if index >= len(self.order):
             raise ValueError("no more questions to ask about; reset the form first".format(index))
@@ -205,10 +266,24 @@ class Form:
         f = self.fields[self.order[index]]
         self._cursor = index
         
+        multivalue, sentinel = f['multivalue'], f['sentinel']
+        if multivalue:
+            if not self._in_multivalue:
+                # we are entering a multivalue field for the first time
+                self._in_multivalue = True
+                self._multivalue_index = -1
+            self._multivalue_index += 1
+        
+        path_comps = list(parents + [f['name']])
+        full_path = '.'.join(path_comps)
+        
+        print("-------------")
+        
         if f['field_type'] == 'simple':
             got_valid = False
             while not got_valid:
-                full_path = '.'.join(parents + [f['name']])
+                if self._in_multivalue:
+                    full_path += "[" + str(self._multivalue_index) + "]"
                 
                 prompt = full_path
                 if f['default'] is not None:
@@ -216,6 +291,9 @@ class Form:
   
                 if f['nullable']:
                     prompt += "\n(Ctrl-D for explicit null)"
+                    
+                if multivalue:
+                    prompt += "\n(type {!r} to end adding values)".format(sentinel)
                     
                 prompt += ": "
                     
@@ -234,6 +312,11 @@ class Form:
                         value = f['default']
                         got_valid = True
                         continue
+                        
+                if multivalue and str_input == sentinel:
+                    self._in_multivalue = False
+                    self._multivalue_index = -1
+                    return list(parents + [f['name']] + ["[None]"]), None
                 
                 try:
                     value = f['type'](str_input)
@@ -241,21 +324,38 @@ class Form:
                 except ValueError:
                     pass
                     
-            return list(parents + [f['name']]), value
+            if multivalue:
+                path_comps += ["[" + str(self._multivalue_index) + "]"]
+            return path_comps, value
         elif f['field_type'] == 'object':
             subform = f['form']
-            # first if we havent asked anyfin and the subform entirely is nullable, prompt
-            # to see if the user even wants to do a value
             
-            full_path = '.'.join(parents + [f['name']])
+            # first if we havent asked anyfin and we are on a multivalue, we need to ask if the list
+            # ends here
+            if multivalue and subform._cursor == -1:
+                if not entry.confirm("{:s} is a list of values. Enter another one?".format(full_path)):
+                    # this is treated as hitting a sentinel
+                    path_comps += "[None]"
+                    return path_comps, None
+            
+            if multivalue:
+                full_path += "[" + str(self._multivalue_index) + "]"
+                path_comps += ["[" + str(self._multivalue_index) + "]"]
+                
+            # if we havent asked anyfin and the subform entirely is nullable, prompt
+            # to see if the user even wants to do a value
             if f['nullable'] and subform._cursor == -1:
                 if not entry.confirm("{:s} is nullable. Enter value for it?".format(full_path)):
-                    subform._cursor_to_end()
-                    return list(parents + [f['name']]), None
-            
-            subform_parents = list(parents)
-            subform_parents.append(f['name'])
-            return subform._ask(subform_parents)
+                    if self._in_multivalue:
+                        subform._reset()
+                    else:
+                        subform._cursor_to_end()
+                    return path_comps, None
+                    
+            comps, value = subform._ask(path_comps)
+            if self._in_multivalue and not subform._has_more_prompts():
+                subform._reset()
+            return comps, value
         else:
             raise ValueError("unknown field_type: {!r}".format(f['field_type']))
             
