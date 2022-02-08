@@ -4,9 +4,26 @@ from .store import FlexibleStore
 from .forms import Form
 from typing import Tuple, Optional
 
+import objectpath
+
+import pprint
 import json
 
 # TODO: this module should be called cherub
+
+def query_data(dataset):
+    running = True
+    tree = objectpath.Tree(dataset)
+    print("-------------------")
+    print("Data query mode")
+    print("(type \q to quit)")
+    while running:
+        query = input("> ")
+        if query == r'\q':
+            running = False
+            continue
+        output = tree.execute(query)
+        pprint.pprint(output)
 
 def show_data_menu():
     unsaved_mutations = False
@@ -19,6 +36,7 @@ def show_data_menu():
         last_filename = None
         choices = {
             "enter": "Enter data into the collection",
+            "query": "Query the data using objectpath syntax",
             "save": "Save the collection to disk",
             "load": "Load a collection from disk",
             "back": "Go back to the main menu",
@@ -37,6 +55,8 @@ def show_data_menu():
                 if not entry.confirm("Are you sure you want to exit data mode discard the changes?"):
                     continue
             running = False
+        elif choice == "query":
+            query_data(dataset)
         elif choice == "save":
             saved_fname = save_dataset(dataset, last_filename)
             if saved_fname is not None:
