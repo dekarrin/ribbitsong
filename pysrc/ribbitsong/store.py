@@ -1,13 +1,13 @@
-from typing import Callable, Optional, Any, Union
+from typing import Callable, Optional, Any, Union, List, Dict
 import re
 
 SerializedPrimitive = Optional[Union[int, str, float, bool]]
-SerializedValue = Union[SerializedPrimitive, list['SerializedValue'], dict[str, 'SerializedValue']]
+SerializedValue = Union[SerializedPrimitive, List['SerializedValue'], Dict[str, 'SerializedValue']]
 SerializationVersion = 1
-WhereClause = Optional[Callable[[dict[str, Any]], bool]]
+WhereClause = Optional[Callable[[Dict[str, Any]], bool]]
 
 FieldValue = SerializedPrimitive
-Row = dict[str, FieldValue]
+Row = Dict[str, FieldValue]
 
 _field_types = {
     'int': int,
@@ -30,7 +30,7 @@ class FieldDef:
         self.type = _field_types[type]
         self.default = None if default is None else self.type(default)
         
-    def to_dict(self) -> dict[str, SerializedValue]:
+    def to_dict(self) -> Dict[str, SerializedValue]:
         d = {
             'name': self.name,
             'type': self._type_name,
@@ -67,7 +67,7 @@ class Model:
     def __init__(self):
         self.fields = {}
         
-    def to_dict(self) -> dict[str, SerializedValue]:
+    def to_dict(self) -> Dict[str, SerializedValue]:
         d = {"fields": list()}
         for f in self:
             d['fields'].append(self[f].to_dict())
@@ -117,10 +117,10 @@ class FlexibleSchema:
         if _identifier_re.match(name) is None:
             raise ValueError("{!r} is not a valid identifier".format(str(name)))
         self.name = name
-        self.rows: list[dict[str, FieldValue]] = []
+        self.rows: List[Dict[str, FieldValue]] = []
         self._model = model
         
-    def to_dict(self) -> dict[str, SerializedValue]:
+    def to_dict(self) -> Dict[str, SerializedValue]:
         d = {
             'version': SerializationVersion,
             'model': self._model.to_dict(),
@@ -212,7 +212,7 @@ class FlexibleSchema:
             
         self.rows.append(full_row)
             
-    def select(self, where: WhereClause = None) -> list[Row]:
+    def select(self, where: WhereClause = None) -> List[Row]:
         """
         Select rows matching the whereclause.
         
@@ -275,9 +275,9 @@ class FlexibleSchema:
 
 class FlexibleStore:
     def __init__(self):
-        self.schemas: dict[str, FlexibleSchema] = {}
+        self.schemas: Dict[str, FlexibleSchema] = {}
     
-    def to_dict(self) -> dict[str, SerializedValue]:
+    def to_dict(self) -> Dict[str, SerializedValue]:
         d = {
             'version': SerializationVersion,
             'schemas': list()
@@ -340,7 +340,7 @@ class FlexibleStore:
             
         return self[schema].insert(row)
         
-    def select(self, schema: str, where: WhereClause = None) -> list[Row]:
+    def select(self, schema: str, where: WhereClause = None) -> List[Row]:
         if schema in self:
             raise ValueError("no such schema {!r}".format(schema))
             

@@ -1,5 +1,5 @@
 import re
-from typing import Optional, Callable, Any, Tuple
+from typing import Optional, Callable, Any, Tuple, Dict, List
 import uuid
 
 from . import entry
@@ -19,8 +19,8 @@ class Form:
     
     def __init__(self, name: str = ""):
         self.name = name
-        self.fields: dict[str, dict[str, Any]] = {}
-        self.order: list[str] = []
+        self.fields: Dict[str, Dict[str, Any]] = {}
+        self.order: List[str] = []
         self._cursor = -1
         self._in_multivalue = False
         self._multivalue_index = -1
@@ -52,7 +52,8 @@ class Form:
         default: Optional[Any] = None,
         nullable: bool = False,
         multivalue: bool = False,
-        sentinel: str = "done"
+        sentinel: str = "done",
+        default_last: bool = False
     ):
         """
         Add a field to the form. The user is prompted to fill in fields in the order
@@ -71,6 +72,8 @@ class Form:
         of the list.
         :param sentinel: This is the value that the user must enter to terminate a multivalue
         entry.
+        :param default_last: Use the last entered value as the default. If this is set, 'default'
+        is used only for the initial default.
         """
         if name in self.fields:
             raise ValueError("Field named {!r} already exists in this form".format(name))
@@ -101,7 +104,8 @@ class Form:
             'default': default,
             'nullable': nullable,
             'multivalue': multivalue,
-            'sentinel': sentinel
+            'sentinel': sentinel,
+            'default_last_entered': default_last
         }
         
         self.fields[name] = f
@@ -110,7 +114,7 @@ class Form:
     def add_choice_field(
         self,
         name: str,
-        choices: list[str],
+        choices: List[str],
         default: Optional[Any] = None,
         nullable: bool = False,
         multivalue: bool = False,
@@ -174,7 +178,7 @@ class Form:
     def add_polymorphic_object_field(
         self,
         name: str,
-        type_choices: list[str],
+        type_choices: List[str],
         type_field: str = "type",
         default_type: Optional[str] = None,
         nullable: bool = False,
@@ -245,7 +249,7 @@ class Form:
         
         self.order.remove(name)
         
-    def fill(self) -> dict[str, Any]:
+    def fill(self) -> Dict[str, Any]:
         """
         Prompt the user to fill out every field of the form and return a dict that
         contains the results.
@@ -344,7 +348,7 @@ class Form:
         return False
         
         
-    def _ask(self, parents: list[str]) -> Tuple[list[str], Any]:
+    def _ask(self, parents: List[str]) -> Tuple[List[str], Any]:
         """
         Ask the user to give data for a field. The user is prompted for the field
         that comes after the last one they were prompted for. If they haven't yet
@@ -456,6 +460,10 @@ class Form:
                     
             if multivalue:
                 path_comps += ["[" + str(self._multivalue_index) + "]"]
+
+            # we now have a valid task, have it set as default if that is what we do
+            if f['default_last_entered']:
+                f['default'] = value
             return path_comps, value
         elif f['field_type'] == 'object':
             subform = f['form']
