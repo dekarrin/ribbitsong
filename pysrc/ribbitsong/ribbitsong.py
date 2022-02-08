@@ -2,7 +2,7 @@ from .version import Version
 from . import entry
 from .store import FlexibleStore
 from .forms import Form
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 
 import objectpath
 
@@ -470,7 +470,7 @@ def create_constraint_field(parent_form, field_name, multivalue=False, nullable=
     sync_form.add_field("ref_event", default_last=True)
     create_citation_field(sync_form, "citation", nullable=False, default_last=True)
     
-def enter_data() -> list[dict]:
+def enter_data() -> List[dict]:
     """
     Return a list of the event points entered.
     """
