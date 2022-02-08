@@ -1,4 +1,4 @@
-from ribbitsong.ribbitsong import show_main_menu
+from cherub.menus import show_main_menu
 
 if __name__ == "__main__":
     try:
