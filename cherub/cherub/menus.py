@@ -4,17 +4,13 @@ from .store import FlexibleStore
 from .forms import Form
 from typing import Tuple, Optional, List
 
-import objectpath
+import yaql
 
-import pprint
 import json
 
-# TODO: this module should be called cherub
-
 def query_data(dataset):
+    engine = yaql.factory.YaqlFactory().create()
     running = True
-    tree = objectpath.Tree(dataset)
-    print("-------------------")
     print("Data query mode")
     print("(type \q to quit)")
     while running:
@@ -22,8 +18,10 @@ def query_data(dataset):
         if query == r'\q':
             running = False
             continue
-        output = tree.execute(query)
-        pprint.pprint(output)
+        expression = engine(query)
+        result = expression.evaluate(data=dataset)
+        output = json.dumps(result, indent=2, sort_keys=True)
+        print(output)
 
 def show_data_menu():
     unsaved_mutations = False
@@ -36,7 +34,7 @@ def show_data_menu():
         last_filename = None
         choices = {
             "enter": "Enter data into the collection",
-            "query": "Query the data using objectpath syntax",
+            "query": "Query the data using YAQL syntax",
             "save": "Save the collection to disk",
             "load": "Load a collection from disk",
             "back": "Go back to the main menu",
