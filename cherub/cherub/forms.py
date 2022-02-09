@@ -402,6 +402,10 @@ class Form:
             value = str(uuid.uuid4())
             if multivalue:
                 path_comps += ["[" + str(self._multivalue_index) + "]"]
+                
+            path = '.'.join(path_comps).replace('.[', '[')
+                
+            print("Auto-generated {:s}: {:s}".format(path, value))
             return path_comps, value
             
         elif f['field_type'] == 'simple':
@@ -464,7 +468,7 @@ class Form:
             # first if we havent asked anyfin and we are on a multivalue, we need to ask if the list
             # ends here
             if multivalue and subform._cursor == -1:
-                if not entry.confirm("{:s} is a list of values. Enter another one?".format(full_path)):
+                if not entry.confirm("{:s} is a list of values. Enter another one?".format(full_path.replace('.[', '['))):
                     # this is treated as hitting a sentinel
                     path_comps += ["[None]"]
                     self._in_multivalue = False
@@ -478,7 +482,7 @@ class Form:
             # if we havent asked anyfin and the subform entirely is nullable, prompt
             # to see if the user even wants to do a value
             if f['nullable'] and subform._cursor == -1:
-                if not entry.confirm("{:s} is nullable. Enter value for it?".format(full_path)):
+                if not entry.confirm("{:s} is nullable. Enter value for it?".format(full_path.replace('.[', '['))):
                     if self._in_multivalue:
                         subform._reset()
                     else:

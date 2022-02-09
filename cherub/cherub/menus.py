@@ -13,17 +13,16 @@ def show_main_menu(start_file: Optional[str] = None):
     running = True
     dataset = {'events': []}
     
-    print("RibbitSong Cherub v" + Version)
-    print("=============================")
     if start_file is not None:        
         loaded_dataset = read_datafile(start_file)
         if loaded_dataset is not None:
             dataset = loaded_dataset
             last_filename = start_file
-            
+    
     print("")
+    print("RibbitSong Cherub v" + Version)
+    print("=============================")
     while running:
-        last_filename = None
         choices = {
             "enter": "Enter data into the collection",
             "query": "Query the data using YAQL syntax",
@@ -31,6 +30,10 @@ def show_main_menu(start_file: Optional[str] = None):
             "load": "Load a collection from disk",
             "exit": "Quit this program",
         }
+            
+        print("")
+        print("Main Menu")
+        print("-" * 50)
         
         for c in choices:
             print("{:s} - {:s}".format(c, choices[c]))
