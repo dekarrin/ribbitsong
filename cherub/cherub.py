@@ -1,11 +1,11 @@
-from cherub import menus
+from frogcherub import menus
     
 import logging
 import logging.handlers
 import sys
 import argparse
 
-_log = logging.getLogger('cherub')
+_log = logging.getLogger('frogcherub')
 _log.setLevel(logging.DEBUG)
 
 
