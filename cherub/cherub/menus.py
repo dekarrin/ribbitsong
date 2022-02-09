@@ -7,7 +7,7 @@ from typing import Tuple, Optional, List
 import yaql
 import json
 
-def show_main_menu():
+def show_main_menu(start_file: Optional[str] = None):
     unsaved_mutations = False
     last_filename = None
     running = True
@@ -15,6 +15,12 @@ def show_main_menu():
     
     print("RibbitSong Cherub v" + Version)
     print("=============================")
+    if start_file is not None:        
+        loaded_dataset = read_datafile(start_file)
+        if loaded_dataset is not None:
+            dataset = loaded_dataset
+            last_filename = start_file
+            
     print("")
     while running:
         last_filename = None
@@ -107,7 +113,6 @@ def save_dataset(dataset: dict, default: str) -> str:
     print("Saved to {!r}".format(fname))
     entry.pause()
     return fname
-    
 
 def load_dataset(default: str) -> Tuple[dict, str]:
     p = "Enter filename to load from"
@@ -118,7 +123,15 @@ def load_dataset(default: str) -> Tuple[dict, str]:
     fname = entry.get(str, p, allow_blank=True)
     if fname == "":
         fname = default
+        
+    dataset = read_datafile(fname)
+    if dataset is None:
+        return None, None
     
+    return dataset, fname
+    
+
+def read_datafile(fname) -> dict:
     try:
         with open(fname, 'r') as fp:
             dataset = json.load(fp)
@@ -126,10 +139,10 @@ def load_dataset(default: str) -> Tuple[dict, str]:
         print("Could not load from {!r}:".format(fname))
         print(str(e))
         entry.pause()
-        return None, None
+        return None
     
     entry.pause("Loaded {!r}".format(fname))
-    return dataset, fname
+    return dataset
     
     
 def create_event_tag_field(parent_form, field_name, multivalue=False, nullable=False):

@@ -1,4 +1,4 @@
-from cherub.menus import show_main_menu
+from cherub import menus
     
 import logging
 import logging.handlers
@@ -28,6 +28,8 @@ def _parse_cli_and_run():
     parser.add_argument('-d', '--datafile', help="A file of datapoints to load with")
     
     args = parser.parse_args()
+    
+    menus.show_main_menu(start_file=args.datafile)
     
     
 class _ExactLevelFilter(object):
