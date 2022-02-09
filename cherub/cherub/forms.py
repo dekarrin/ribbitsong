@@ -373,13 +373,6 @@ class Form:
         # before incrementing
         if self._cursor > -1 and self._cursor < len(self.order):
             f = self.fields[self.order[self._cursor]]
-            print()
-            print("FOR PREV {!r}".format(','.join(parents + [f['name']])))
-            print("IN MULTI: " + str(self._in_multivalue))
-            
-            print("index: " + str(index))
-            print("field-type: " + str(f['field_type']))
-            print("has-more: " + str(f['form']._has_more_prompts()) if f['field_type'] == 'object' else "N/A")
             if f['field_type'] != 'object' or not f['form']._has_more_prompts():
                 if not self._in_multivalue:
                     index += 1

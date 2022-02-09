@@ -277,21 +277,21 @@ def create_constraint_field(parent_form, field_name, multivalue=False, nullable=
     
     abs_form = constraint_forms[4]
     abs_form.add_field("time", default_last=True)
-    create_citation_field(abs_form, "citation", nullable=False, default_last=True)
+    create_citation_field(abs_form, "citation", nullable=False)
     
     relative_form = constraint_forms[5]
     relative_form.add_field("ref_event", default_last=True)
     relative_form.add_field("is_after", type=bool, default=True, default_last=True)
     relative_form.add_field("distance", default_last=True)
-    create_citation_field(relative_form, "citation", nullable=False, default_last=True)
+    create_citation_field(relative_form, "citation", nullable=False)
     
     causal_form = constraint_forms[6]
     causal_form.add_field("time", default_last=True)
-    create_citation_field(causal_form, "citation", nullable=False, default_last=True)
+    create_citation_field(causal_form, "citation", nullable=False)
     
     sync_form = constraint_forms[7]
     sync_form.add_field("ref_event", default_last=True)
-    create_citation_field(sync_form, "citation", nullable=False, default_last=True)
+    create_citation_field(sync_form, "citation", nullable=False)
     
 def enter_data() -> List[dict]:
     """
