@@ -144,7 +144,8 @@ def read_datafile(fname) -> dict:
         entry.pause()
         return None
     
-    entry.pause("Loaded {!r}".format(fname))
+    print("Loaded {!r}".format(fname))
+    entry.pause()
     return dataset
     
     
