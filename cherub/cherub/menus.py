@@ -4,9 +4,7 @@ from .store import FlexibleStore
 from .forms import Form
 from typing import Tuple, Optional, List
 
-import objectpath
-
-import pprint
+import yaql
 import json
 
 def show_main_menu():
@@ -22,7 +20,7 @@ def show_main_menu():
         last_filename = None
         choices = {
             "enter": "Enter data into the collection",
-            "query": "Query the data using objectpath syntax",
+            "query": "Query the data using YAQL syntax",
             "save": "Save the collection to disk",
             "load": "Load a collection from disk",
             "exit": "Quit this program",
@@ -66,9 +64,8 @@ def show_main_menu():
                 
 
 def query_data(dataset):
+    engine = yaql.factory.YaqlFactory().create()
     running = True
-    tree = objectpath.Tree(dataset)
-    print("-------------------")
     print("Data query mode")
     print("(type \q to quit)")
     while running:
@@ -76,8 +73,11 @@ def query_data(dataset):
         if query == r'\q':
             running = False
             continue
-        output = tree.execute(query)
-        pprint.pprint(output)
+        expression = engine(query)
+        result = expression.evaluate(data=dataset)
+        output = json.dumps(result, indent=2, sort_keys=True)
+        print(output)
+
 
 
 def save_dataset(dataset: dict, default: str) -> str:
