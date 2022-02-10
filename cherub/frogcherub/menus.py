@@ -159,9 +159,17 @@ def enter_data(last_event = None) -> List[dict]:
     
     form = Form()
     
+    last_univ_name = None
+    last_univ_timeline = None
+    last_univ_location = None
     last_id_var = vars.GenericVar()
     if last_event is not None:
         last_id_var.set(last_event['id'])
+        if len(last_event['universes']) > 0:
+            last_univ = last_event['universes'][-1]
+            last_univ_name = last_univ['name']
+            last_univ_timeline = last_univ['timeline']
+            last_univ_location = last_univ['location']
     
     current_id = None
     def set_curent_id(v):
@@ -184,9 +192,9 @@ def enter_data(last_event = None) -> List[dict]:
     create_constraint_field(event_form, "constraints", last_id_var, multivalue=True)
     
     univ_form = event_form.add_object_field("universes", multivalue=True)
-    univ_form.add_field("name", default_last=True)
-    univ_form.add_field("timeline", default_last=True)
-    univ_form.add_field("location", default_last=True)
+    univ_form.add_field("name", default_last=True, default=last_univ_name)
+    univ_form.add_field("timeline", default_last=True, default=last_univ_timeline)
+    univ_form.add_field("location", default_last=True, default=last_univ_location)
     univ_form.add_field("characters", multivalue=True, default_last=True)
     univ_form.add_field("items", multivalue=True, default_last=True)
     
