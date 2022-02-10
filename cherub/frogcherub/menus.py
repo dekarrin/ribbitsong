@@ -172,7 +172,7 @@ def enter_data(last_event = None) -> List[dict]:
             last_univ_location = last_univ['location']
     
     current_id = None
-    def set_curent_id(v):
+    def set_current_id(v):
         nonlocal current_id
         current_id = v
         
@@ -226,7 +226,7 @@ def create_citation_field(parent_form, field_name, multivalue=False, nullable=Fa
     cite_commentary_form.add_field("page", type=int, default_last=True)
     
 
-def create_event_tag_field(parent_form, field_name, id_default, multivalue=False, nullable=False):
+def create_event_tag_field(parent_form, field_name, multivalue=False, nullable=False):
     types = [
         "appearance_changed",
         "state_changed",
