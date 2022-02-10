@@ -63,7 +63,8 @@ class Form:
         :param type: The type converter for data entered for the field. This is str by default.
         :param default: The default value if the user does not enter any data. This is not
         put through the type_conv function, so it should be the exact type that is desired for
-        the field.
+        the field. Alternatively, this can be a Callable that takes no arguments and produces
+        a value; in this case, it will be called for the default value every time one is needed.
         :param nullable: Whether the field can be set to null.
         :param multivalue: Marks the field as multivalued (list-valued). When set to
         True, then during form filling the user is prompted for multiple values for this field
@@ -412,13 +413,16 @@ class Form:
             print("-------------")
             sentinel = f['sentinel']
             got_valid = False
+            default_value = f['default']
+            if default_value is not None and callable(default_value):
+                default_value = default_value()
             while not got_valid:
                 if self._in_multivalue:
                     full_path += "[" + str(self._multivalue_index) + "]"
                 
                 prompt = full_path.replace('.[', '[')
-                if f['default'] is not None:
-                    prompt += " (default: {!r})".format(f['default'])
+                if default_value is not None:
+                    prompt += " (default: {!r})".format(default_value)
   
                 if f['nullable']:
                     prompt += "\n(Ctrl-D for explicit null)"
@@ -439,8 +443,8 @@ class Form:
                         raise
                         
                 if str_input == "":
-                    if f['nullable'] or f['default'] is not None:
-                        value = f['default']
+                    if f['nullable'] or default_value is not None:
+                        value = default_value
                         got_valid = True
                         continue
                         
