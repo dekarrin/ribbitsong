@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from frogcherub import forms
+from frogcherub import forms, util
 
 # It Would Be Nice If This Did Not Print During Every Test.
 # So We Will Turn Them Off Here
@@ -38,10 +38,7 @@ class TestFormUsage(unittest.TestCase):
         
     @patch('builtins.input', side_effect=["", "", ""])
     def test_callable_default(self, _):
-        def give_default():
-            values = ["one", "two", "three"]
-            for v in values:
-                yield v
+        give_default = util.SequenceProvider("one", "two", "three")
     
         self.sut.add_field("test", default=give_default)
         
