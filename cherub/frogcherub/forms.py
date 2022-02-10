@@ -53,7 +53,8 @@ class Form:
         nullable: bool = False,
         multivalue: bool = False,
         sentinel: str = "done",
-        default_last: bool = False
+        default_last: bool = False,
+        entry_hook: Optional[Callable[[Any], Any]] = None
     ):
         """
         Add a field to the form. The user is prompted to fill in fields in the order
@@ -75,6 +76,7 @@ class Form:
         entry.
         :param default_last: Use the last entered value as the default. If this is set, 'default'
         is used only for the initial default.
+        :param entry_hook: Called with the entered value whenever one is entered.
         """
         if name in self.fields:
             raise ValueError("Field named {!r} already exists in this form".format(name))
@@ -106,7 +108,8 @@ class Form:
             'nullable': nullable,
             'multivalue': multivalue,
             'sentinel': sentinel,
-            'default_last_entered': default_last
+            'default_last_entered': default_last,
+            'entry_hook': entry_hook
         }
         
         self.fields[name] = f
@@ -461,6 +464,9 @@ class Form:
                     
             if multivalue:
                 path_comps += ["[" + str(self._multivalue_index) + "]"]
+                
+            if f['entry_hook'] is not None:
+                f['entry_hook'](value)
 
             # we now have a valid task, have it set as default if that is what we do
             if f['default_last_entered']:
