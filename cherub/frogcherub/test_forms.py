@@ -82,6 +82,90 @@ class TestFormUsage(unittest.TestCase):
         self.sut.fill()
         
         self.assertIsNotNone(received)
+    
+    @patch('builtins.input', side_effect=["answer1", "answer2"])
+    def test_done_hook(self, _):
+        called = True
+        def hook(*args):
+            nonlocal called
+            called = True
+        
+        subform = self.sut.add_object_field("test", done_hook=hook)
+        subform.add_field("test1")
+        subform.add_field("test2")
+        
+        self.sut.fill()
+        
+        self.assertTrue(called)
+    
+    @patch('builtins.input', side_effect=["yes", "answer1", "answer2", "yes", "answer3", "answer4", "no"])
+    def test_done_hook_multivalue(self, _):
+        call_count = 0
+        def hook(*args):
+            nonlocal call_count
+            call_count += 1
+        
+        subform = self.sut.add_object_field("test", done_hook=hook, multivalue=True)
+        subform.add_field("test1")
+        subform.add_field("test2")
+        
+        self.sut.fill()
+        
+        expected = 2
+        actual = call_count
+        self.assertEqual(actual, expected)
+    
+    @patch('builtins.input', side_effect=["yes", "answer1", "answer2"])
+    def test_done_hook_nullable_nonnull(self, _):
+        call_count = 0
+        def hook(*args):
+            nonlocal call_count
+            call_count += 1
+        
+        subform = self.sut.add_object_field("test", done_hook=hook, nullable=True)
+        subform.add_field("test1")
+        subform.add_field("test2")
+        
+        self.sut.fill()
+        
+        expected = 1
+        actual = call_count
+        self.assertEqual(actual, expected)
+    
+    @patch('builtins.input', side_effect=["no"])
+    def test_done_hook_nullable_null(self, _):
+        call_count = 0
+        def hook(*args):
+            nonlocal call_count
+            call_count += 1
+        
+        subform = self.sut.add_object_field("test", done_hook=hook, nullable=True)
+        subform.add_field("test1")
+        subform.add_field("test2")
+        
+        self.sut.fill()
+        
+        expected = 1
+        actual = call_count
+        self.assertEqual(actual, expected)
+    
+    @patch('builtins.input', side_effect=["yes", "yes", "answer1", "answer2", "yes", "no", "no"])
+    def test_done_hook_multivalue_nullable(self, _):
+        call_count = 0
+        def hook(*args):
+            nonlocal call_count
+            call_count += 1
+        
+        subform = self.sut.add_object_field("test", done_hook=hook, nullable=True, multivalue=True)
+        subform.add_field("test1")
+        subform.add_field("test2")
+        
+        result = self.sut.fill()
+        
+        expected = 2
+        actual = call_count
+        self.assertEqual(actual, expected)
+        
         
         
         

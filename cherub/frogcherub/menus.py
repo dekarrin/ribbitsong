@@ -165,7 +165,12 @@ def enter_data(last_event = None) -> List[dict]:
     
     event_form = form.add_object_field("events", multivalue=True)
     
-    event_form.add_auto_uuid_field("id")
+    current_id = None
+    def set_curent_id(v):
+        nonlocal current_id
+        current_id = v
+    
+    event_form.add_auto_uuid_field("id", entry_hook=set_current_id)
     event_form.add_field("name", default_last=True)
     event_form.add_field("description", default_last=True)
     create_citation_field(event_form, "citations", last_id_var, multivalue=True)

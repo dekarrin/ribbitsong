@@ -141,7 +141,13 @@ class Form:
             
         return self.add_field(name, choice_checker, default, nullable, multivalue, sentinel)
         
-    def add_object_field(self, name: str, nullable: bool = False, multivalue: bool = False) -> 'Form':
+    def add_object_field(
+        self,
+        name: str,
+        nullable: bool = False,
+        multivalue: bool = False,
+        done_hook: Optional[Callable[[Any], Any]] = None
+    ) -> 'Form':
         """
         Add a field that is itself a series of properties. This can be used for making a
         particular field represent an entire object.
@@ -158,6 +164,7 @@ class Form:
         until the sentinel value is entered. A multivalue field is represented by a non-nullable
         array, and the 'nullable' parameter refers to whether it accepts null values as members
         of the list.
+        :param done_hook: Called whenever the object is done having its fields entered.
         """
         if name in self.fields:
             raise ValueError("Field named {!r} already exists in this form".format(name))
@@ -174,6 +181,7 @@ class Form:
             'form': subform,
             'nullable': nullable,
             'multivalue': multivalue,
+            'done_hook': done_hook
         }
         
         self.fields[name] = f
@@ -187,7 +195,8 @@ class Form:
         type_field: str = "type",
         default_type: Optional[str] = None,
         nullable: bool = False,
-        multivalue: bool = False
+        multivalue: bool = False,
+        done_hook: Optional[Callable[[Any], Any]] = None
     ):
         """
         Adds an object field that can change the type of object that is entered based on
@@ -234,6 +243,7 @@ class Form:
             'form': dummy_first_form,
             'nullable': nullable,
             'multivalue': multivalue,
+            'done_hook': done_hook
         }
         
         self.fields[name] = f
@@ -498,6 +508,9 @@ class Form:
             # to see if the user even wants to do a value
             if f['nullable'] and subform._cursor == -1:
                 if not entry.confirm("{:s} is nullable. Enter value for it?".format(full_path.replace('.[', '['))):
+                    if f['done_hook'] is not None:
+                        f['done_hook']()
+                    
                     if self._in_multivalue:
                         subform._reset()
                     else:
@@ -515,6 +528,9 @@ class Form:
                 f['form'] = selected_subform
                 if not selected_subform._has_more_prompts():
                     selected_subform._reset()
+                
+            if not subform._has_more_prompts() and f['done_hook'] is not None:
+                f['done_hook']()
                 
             if self._in_multivalue and not subform._has_more_prompts():
                 subform._reset()
