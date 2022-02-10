@@ -163,19 +163,24 @@ def enter_data(last_event = None) -> List[dict]:
     if last_event is not None:
         last_id_var.set(last_event['id'])
     
-    event_form = form.add_object_field("events", multivalue=True)
-    
     current_id = None
     def set_curent_id(v):
         nonlocal current_id
         current_id = v
+        
+    def set_current_id_to_last():
+        nonlocal current_id, last_id_var
+        last_id_var.set(current_id)
+    
+    
+    event_form = form.add_object_field("events", multivalue=True, done_hook=set_current_id_to_last)
     
     event_form.add_auto_uuid_field("id", entry_hook=set_current_id)
     event_form.add_field("name", default_last=True)
     event_form.add_field("description", default_last=True)
-    create_citation_field(event_form, "citations", last_id_var, multivalue=True)
-    create_citation_field(event_form, "portrayed_in", last_id_var, nullable=True)
-    create_event_tag_field(event_form, "tags", last_id_var, multivalue=True)
+    create_citation_field(event_form, "citations", multivalue=True)
+    create_citation_field(event_form, "portrayed_in", nullable=True)
+    create_event_tag_field(event_form, "tags", multivalue=True)
     create_constraint_field(event_form, "constraints", last_id_var, multivalue=True)
     
     univ_form = event_form.add_object_field("universes", multivalue=True)
@@ -232,7 +237,7 @@ def create_event_tag_field(parent_form, field_name, id_default, multivalue=False
         "char_wakes_up",
     ]
     
-    tag_forms = parent_form.add_polymorphic_object_field(field_name, types, multivalue=multivalue, nullable=nullable, id_default: )
+    tag_forms = parent_form.add_polymorphic_object_field(field_name, types, multivalue=multivalue, nullable=nullable)
     
     appearance_changed_form = tag_forms[0]
     appearance_changed_form.add_field("recipient", default_last=True)
