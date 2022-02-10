@@ -54,6 +54,34 @@ class TestFormUsage(unittest.TestCase):
         actual = [actual_1, actual_2, actual_3]
         
         self.assertEqual(actual, expected)
+    
+    @patch('builtins.input', side_effect=["answer"])
+    def test_entry_hook_normal_field(self, _):
+        received = None
+        def hook(v):
+            nonlocal received
+            received = v
+        
+        self.sut.add_field("test", entry_hook=hook)
+        
+        self.sut.fill()
+        
+        actual = received
+        expected = "answer"
+        
+        self.assertEqual(actual, expected)
+    
+    def test_entry_hook_auto_uuid_field(self):
+        received = None
+        def hook(v):
+            nonlocal received
+            received = v
+        
+        self.sut.add_auto_uuid_field("test", entry_hook=hook)
+        
+        self.sut.fill()
+        
+        self.assertIsNotNone(received)
         
         
         
