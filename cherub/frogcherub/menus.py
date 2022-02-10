@@ -187,10 +187,10 @@ def enter_data(last_event = None) -> List[dict]:
     event_form.add_field("name")
     event_form.add_field("description")
     create_citation_field(event_form, "portrayed_in", nullable=True)
-    create_constraint_field(event_form, "constraints", last_id_var, multivalue=True)
-    create_event_tag_field(event_form, "tags", multivalue=True)
     create_citation_field(event_form, "citations", multivalue=True)
-    
+    create_event_tag_field(event_form, "tags", multivalue=True)
+    create_constraint_field(event_form, "constraints", last_id_var, multivalue=True)
+
     univ_form = event_form.add_object_field("universes", multivalue=True)
     univ_form.add_field("name", default_last=True, default=last_univ_name)
     univ_form.add_field("timeline", default_last=True, default=last_univ_timeline)
