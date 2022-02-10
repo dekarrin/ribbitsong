@@ -184,12 +184,12 @@ def enter_data(last_event = None) -> List[dict]:
     event_form = form.add_object_field("events", multivalue=True, done_hook=set_current_id_to_last)
     
     event_form.add_auto_uuid_field("id", entry_hook=set_current_id)
-    event_form.add_field("name", default_last=True)
-    event_form.add_field("description", default_last=True)
-    create_citation_field(event_form, "citations", multivalue=True)
+    event_form.add_field("name")
+    event_form.add_field("description")
     create_citation_field(event_form, "portrayed_in", nullable=True)
-    create_event_tag_field(event_form, "tags", multivalue=True)
     create_constraint_field(event_form, "constraints", last_id_var, multivalue=True)
+    create_event_tag_field(event_form, "tags", multivalue=True)
+    create_citation_field(event_form, "citations", multivalue=True)
     
     univ_form = event_form.add_object_field("universes", multivalue=True)
     univ_form.add_field("name", default_last=True, default=last_univ_name)
@@ -243,6 +243,8 @@ def create_event_tag_field(parent_form, field_name, multivalue=False, nullable=F
         "char_exits_location",
         "char_falls_asleep",
         "char_wakes_up",
+        "item_merged",
+        "item_split"
     ]
     
     tag_forms = parent_form.add_polymorphic_object_field(field_name, types, multivalue=multivalue, nullable=nullable)
@@ -303,6 +305,15 @@ def create_event_tag_field(parent_form, field_name, multivalue=False, nullable=F
     char_wakes_up_form = tag_forms[14]
     char_wakes_up_form.add_field("character", default_last=True)
 
+    item_merged_form = tag_forms[15]
+    item_merged_form.add_field("source_items", multivalue=True)
+    item_merged_form.add_field("result_items", multivalue=True)
+    item_merged_form.add_field("by", nullable=True)
+
+    item_split_form = tag_forms[16]
+    item_split_form.add_field("source_items", multivalue=True)
+    item_split_form.add_field("result_items", multivalue=True)
+    item_split_form.add_field("by", nullable=True)
 
 def create_constraint_field(parent_form, field_name, id_default, multivalue=False, nullable=False):
     types = [
