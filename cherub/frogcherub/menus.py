@@ -1,5 +1,5 @@
 from .version import Version
-from . import entry
+from . import entry, vars
 from .store import FlexibleStore
 from .forms import Form
 from typing import Tuple, Optional, List
@@ -67,7 +67,10 @@ def show_main_menu(start_file: Optional[str] = None):
                 last_filename = loaded_fname
                 unsaved_mutations = False
         elif choice == "enter":
-            events = enter_data()
+            last_event = None
+            if len(dataset['events']) > 0:
+                last_event = dataset['events'][-1]
+            events = enter_data(last_event)
             for e in events:
                 dataset['events'].append(e)
                 
@@ -146,10 +149,66 @@ def read_datafile(fname) -> dict:
     
     print("Loaded {!r}".format(fname))
     entry.pause()
-    return dataset
+    return dataset    
+
     
+def enter_data(last_event = None) -> List[dict]:
+    """
+    Return a list of the event points entered.
+    """
     
-def create_event_tag_field(parent_form, field_name, multivalue=False, nullable=False):
+    form = Form()
+    
+    last_id_var = vars.GenericVar()
+    if last_event is not None:
+        last_id_var.set(last_event['id'])
+    
+    event_form = form.add_object_field("events", multivalue=True)
+    
+    event_form.add_auto_uuid_field("id")
+    event_form.add_field("name", default_last=True)
+    event_form.add_field("description", default_last=True)
+    create_citation_field(event_form, "citations", last_id_var, multivalue=True)
+    create_citation_field(event_form, "portrayed_in", last_id_var, nullable=True)
+    create_event_tag_field(event_form, "tags", last_id_var, multivalue=True)
+    create_constraint_field(event_form, "constraints", last_id_var, multivalue=True)
+    
+    univ_form = event_form.add_object_field("universes", multivalue=True)
+    univ_form.add_field("name", default_last=True)
+    univ_form.add_field("timeline", default_last=True)
+    univ_form.add_field("location", default_last=True)
+    univ_form.add_field("characters", multivalue=True, default_last=True)
+    univ_form.add_field("items", multivalue=True, default_last=True)
+    
+    data = form.fill()
+    
+    return data['events']
+    
+
+def create_citation_field(parent_form, field_name, multivalue=False, nullable=False):
+    types = ["dialog", "narration", "media", "commentary"]
+    citation_forms = parent_form.add_polymorphic_object_field(field_name, types, multivalue=multivalue, nullable=nullable)
+    cite_dialog_form, cite_narration_form, cite_media_form, cite_commentary_form = citation_forms
+    cite_dialog_form.add_field("work", default_last=True)
+    cite_dialog_form.add_field("panel", type=int, default_last=True)
+    cite_dialog_form.add_field("line", type=int, default_last=True)
+    cite_dialog_form.add_field("character", default_last=True)
+    
+    cite_narration_form.add_field("work", default_last=True)
+    cite_narration_form.add_field("panel", type=int, default_last=True)
+    cite_narration_form.add_field("paragraph", type=int, default_last=True)
+    cite_narration_form.add_field("sentence", type=int, default_last=True)
+    
+    cite_media_form.add_field("work", default_last=True)
+    cite_media_form.add_field("panel", type=int, default_last=True)
+    cite_media_form.add_field("timestamp", default_last=True)
+    
+    cite_commentary_form.add_field("work", default_last=True)
+    cite_commentary_form.add_field("volume", type=int, default_last=True)
+    cite_commentary_form.add_field("page", type=int, default_last=True)
+    
+
+def create_event_tag_field(parent_form, field_name, id_default, multivalue=False, nullable=False):
     types = [
         "appearance_changed",
         "state_changed",
@@ -168,7 +227,7 @@ def create_event_tag_field(parent_form, field_name, multivalue=False, nullable=F
         "char_wakes_up",
     ]
     
-    tag_forms = parent_form.add_polymorphic_object_field(field_name, types, multivalue=multivalue, nullable=nullable)
+    tag_forms = parent_form.add_polymorphic_object_field(field_name, types, multivalue=multivalue, nullable=nullable, id_default: )
     
     appearance_changed_form = tag_forms[0]
     appearance_changed_form.add_field("recipient", default_last=True)
@@ -225,32 +284,9 @@ def create_event_tag_field(parent_form, field_name, multivalue=False, nullable=F
     
     char_wakes_up_form = tag_forms[14]
     char_wakes_up_form.add_field("character", default_last=True)
-    
-    
-def create_citation_field(parent_form, field_name, multivalue=False, nullable=False):
-    types = ["dialog", "narration", "media", "commentary"]
-    citation_forms = parent_form.add_polymorphic_object_field(field_name, types, multivalue=multivalue, nullable=nullable)
-    cite_dialog_form, cite_narration_form, cite_media_form, cite_commentary_form = citation_forms
-    cite_dialog_form.add_field("work", default_last=True)
-    cite_dialog_form.add_field("panel", type=int, default_last=True)
-    cite_dialog_form.add_field("line", type=int, default_last=True)
-    cite_dialog_form.add_field("character", default_last=True)
-    
-    cite_narration_form.add_field("work", default_last=True)
-    cite_narration_form.add_field("panel", type=int, default_last=True)
-    cite_narration_form.add_field("paragraph", type=int, default_last=True)
-    cite_narration_form.add_field("sentence", type=int, default_last=True)
-    
-    cite_media_form.add_field("work", default_last=True)
-    cite_media_form.add_field("panel", type=int, default_last=True)
-    cite_media_form.add_field("timestamp", default_last=True)
-    
-    cite_commentary_form.add_field("work", default_last=True)
-    cite_commentary_form.add_field("volume", type=int, default_last=True)
-    cite_commentary_form.add_field("page", type=int, default_last=True)
-    
 
-def create_constraint_field(parent_form, field_name, multivalue=False, nullable=False):
+
+def create_constraint_field(parent_form, field_name, id_default, multivalue=False, nullable=False):
     types = [
         "narrative_immediate",
         "narrative_jump",
@@ -265,27 +301,27 @@ def create_constraint_field(parent_form, field_name, multivalue=False, nullable=
     constraint_forms = parent_form.add_polymorphic_object_field(field_name, types, multivalue=multivalue, nullable=nullable)
     
     immediate_form = constraint_forms[0]
-    immediate_form.add_field("ref_event", default_last=True)
-    immediate_form.add_field("is_after", type=bool, default=True, default_last=True)
+    immediate_form.add_field("ref_event", default=id_default.get)
+    immediate_form.add_field("is_after", type=bool, default=True)
     
     jump_form = constraint_forms[1]
-    jump_form.add_field("ref_event", default_last=True)
-    jump_form.add_field("is_after", type=bool, default=True, default_last=True)
+    jump_form.add_field("ref_event", default=id_default.get)
+    jump_form.add_field("is_after", type=bool, default=True)
     
     entrypoint_form = constraint_forms[2]
     # there is no additional data for narrative entrypoint
     
     narrative_causal_form = constraint_forms[3]
-    narrative_causal_form.add_field("ref_event", default_last=True)
-    narrative_causal_form.add_field("is_after", type=bool, default=True, default_last=True)
+    narrative_causal_form.add_field("ref_event", default=id_default.get)
+    narrative_causal_form.add_field("is_after", type=bool, default=True)
     
     abs_form = constraint_forms[4]
     abs_form.add_field("time", default_last=True)
     create_citation_field(abs_form, "citation", nullable=False)
     
     relative_form = constraint_forms[5]
-    relative_form.add_field("ref_event", default_last=True)
-    relative_form.add_field("is_after", type=bool, default=True, default_last=True)
+    relative_form.add_field("ref_event", default=id_default.get)
+    relative_form.add_field("is_after", type=bool, default=True)
     relative_form.add_field("distance", default_last=True)
     create_citation_field(relative_form, "citation", nullable=False)
     
@@ -294,34 +330,6 @@ def create_constraint_field(parent_form, field_name, multivalue=False, nullable=
     create_citation_field(causal_form, "citation", nullable=False)
     
     sync_form = constraint_forms[7]
-    sync_form.add_field("ref_event", default_last=True)
+    sync_form.add_field("ref_event", default=id_default.get)
     create_citation_field(sync_form, "citation", nullable=False)
-    
-def enter_data() -> List[dict]:
-    """
-    Return a list of the event points entered.
-    """
-    
-    form = Form()
-    
-    event_form = form.add_object_field("events", multivalue=True)
-    
-    event_form.add_auto_uuid_field("id")
-    event_form.add_field("name", default_last=True)
-    event_form.add_field("description", default_last=True)
-    create_citation_field(event_form, "citations", multivalue=True)
-    create_citation_field(event_form, "portrayed_in", nullable=True)
-    create_event_tag_field(event_form, "tags", multivalue=True)
-    create_constraint_field(event_form, "constraints", multivalue=True)
-    
-    univ_form = event_form.add_object_field("universes", multivalue=True)
-    univ_form.add_field("name", default_last=True)
-    univ_form.add_field("timeline", default_last=True)
-    univ_form.add_field("location", default_last=True)
-    univ_form.add_field("characters", multivalue=True, default_last=True)
-    univ_form.add_field("items", multivalue=True, default_last=True)
-    
-    data = form.fill()
-    
-    return data['events']
-    
+ 

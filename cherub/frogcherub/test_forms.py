@@ -35,3 +35,30 @@ class TestFormUsage(unittest.TestCase):
         actual = [actual_1, actual_2]
 
         self.assertEqual(actual, expected)
+        
+    @patch('builtins.input', side_effect=["", "", ""])
+    def test_callable_default(self, _):
+        def give_default():
+            values = ["one", "two", "three"]
+            for v in values:
+                yield v
+    
+        self.sut.add_field("test", default=give_default)
+        
+        actual_1 = self.sut.fill()
+        actual_2 = self.sut.fill()
+        actual_3 = self.sut.fill()
+        
+        expected = [
+            {'test': 'one'},
+            {'test': 'two'},
+            {'test': 'three'}
+        ]
+        actual = [actual_1, actual_2, actual_3]
+        
+        self.assertEqual(actual, expected)
+        
+        
+        
+        
+        

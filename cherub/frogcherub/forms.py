@@ -25,7 +25,7 @@ class Form:
         self._in_multivalue = False
         self._multivalue_index = -1
         
-    def add_auto_uuid_field(self, name: str):
+    def add_auto_uuid_field(self, name: str, entry_hook: Optional[Callable[[Any], Any]] = None):
         """
         Add a field whose value is automatically filled in with an auto-generated type 4 UUID.
         """
@@ -39,7 +39,8 @@ class Form:
             'field_type': 'autouuid',
             'name': name,
             'nullable': False,
-            'multivalue': False
+            'multivalue': False,
+            'entry_hook': entry_hook
         }
         
         self.fields[name] = f
@@ -410,6 +411,10 @@ class Form:
             path = '.'.join(path_comps).replace('.[', '[')
                 
             print("Auto-generated {:s}: {:s}".format(path, value))
+                
+            if f['entry_hook'] is not None:
+                f['entry_hook'](value)
+            
             return path_comps, value
             
         elif f['field_type'] == 'simple':
