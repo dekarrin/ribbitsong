@@ -1,5 +1,5 @@
 from .version import Version
-from . import entry, vars
+from . import entry, vars, mutations
 from .store import FlexibleStore
 from .forms import Form
 from typing import Tuple, Optional, List
@@ -26,6 +26,7 @@ def show_main_menu(start_file: Optional[str] = None):
         choices = {
             "enter": "Enter data into the collection",
             "query": "Query the data using YAQL syntax",
+            "mutate": "Run a mutation operation",
             "save": "Save the collection to disk",
             "load": "Load a collection from disk",
             "exit": "Quit this program",
@@ -48,6 +49,9 @@ def show_main_menu(start_file: Optional[str] = None):
                 if not entry.confirm("Are you sure you want to exit data mode discard the changes?"):
                     continue
             running = False
+        elif choice == "mutate":
+            if show_mutate_menu():
+                unsaved_mutations = True
         elif choice == "query":
             query_data(dataset)
         elif choice == "save":
@@ -73,6 +77,41 @@ def show_main_menu(start_file: Optional[str] = None):
             events = enter_data(last_event)
             for e in events:
                 dataset['events'].append(e)
+
+
+def show_mutate_menu(dataset: dict) -> bool:
+    """
+    Return whether a mutation occured.
+    """
+    mutated = False
+    running = True
+    
+    while running:
+        choices = {
+            "universe-collapse": "Convert from flat universe objects to deep",
+            "back": "Go back to the main menu"
+        }
+        
+        print("")
+        print("Data Mutation")
+        print("-" * 50)
+        
+        for c in choices:
+            print("{:s} - {:s}".format(c, choices[c]))
+        
+        print("-" * 50)
+        
+        choice = entry.get_choice(str.lower, prompt="Select operation: ", *choices)
+        
+        modified_documents = 0
+        if choice == "back":
+            return mutated
+        elif choice == "universe-collapse":
+            modified_documents += mutations.universe_collapse(dataset)
+            
+        entry.pause("{!r} documents modified".format(modified_documents))
+        if modified_documents > 0:
+            mutated = True
                 
 
 def query_data(dataset):
@@ -193,10 +232,12 @@ def enter_data(last_event = None) -> List[dict]:
 
     univ_form = event_form.add_object_field("universes", multivalue=True)
     univ_form.add_field("name", default_last=True, default=last_univ_name)
-    univ_form.add_field("timeline", default_last=True, default=last_univ_timeline)
-    univ_form.add_field("location", default_last=True, default=last_univ_location)
-    univ_form.add_field("characters", multivalue=True, default_last=True)
-    univ_form.add_field("items", multivalue=True, default_last=True)
+    univ_tls_form = univ_form.add_object_field("timelines", multivalue=True)
+    univ_tls_form.add_field("path", default_last=True, default=last_univ_timeline)
+    univ_locs_form = univ_tls_form.add_object_field("locations", multivalue=True)
+    univ_locs_form.add_ofield("path", default_last=True, default=last_univ_location)
+    univ_locs_form.add_field("characters", multivalue=True, default_last=True)
+    univ_locs_form.add_field("items", multivalue=True, default_last=True)
     
     data = form.fill()
     
