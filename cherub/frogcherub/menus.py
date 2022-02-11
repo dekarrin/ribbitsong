@@ -46,11 +46,11 @@ def show_main_menu(start_file: Optional[str] = None):
         if choice == "exit":
             if unsaved_mutations:
                 print("There are unsaved changes in the data!")
-                if not entry.confirm("Are you sure you want to exit data mode discard the changes?"):
+                if not entry.confirm("Are you sure you want to exit and discard the changes?"):
                     continue
             running = False
         elif choice == "mutate":
-            if show_mutate_menu():
+            if show_mutate_menu(dataset):
                 unsaved_mutations = True
         elif choice == "query":
             query_data(dataset)
