@@ -1,6 +1,6 @@
 import uuid
 
-class Wizard:
+class Wizahd:
     def __init__(self, events):
         self._cursor = -1
         self._events = []
