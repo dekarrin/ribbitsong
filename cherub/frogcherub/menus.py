@@ -359,11 +359,13 @@ def create_event_tag_field(parent_form, field_name, multivalue=False, nullable=F
     item_merged_form.add_field("source_items", multivalue=True)
     item_merged_form.add_field("result_items", multivalue=True)
     item_merged_form.add_field("by", nullable=True)
+    item_merged_form.add_field("results_in_sylladex", multivalue=True)
 
     item_split_form = tag_forms[16]
     item_split_form.add_field("source_items", multivalue=True)
     item_split_form.add_field("result_items", multivalue=True)
     item_split_form.add_field("by", nullable=True)
+    item_split_form.add_field("results_in_sylladex", multivalue=True)
 
 def create_constraint_field(parent_form, field_name, id_default, multivalue=False, nullable=False):
     types = [
