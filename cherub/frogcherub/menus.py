@@ -5,6 +5,7 @@ from .forms import Form
 from typing import Tuple, Optional, List
 
 import yaql
+from yaql.language.exceptions import YaqlLexicalException, YaqlGrammarException
 import json
 
 def show_main_menu(start_file: Optional[str] = None):
@@ -124,7 +125,11 @@ def query_data(dataset):
         if query == r'\q':
             running = False
             continue
-        expression = engine(query)
+        try:
+            expression = engine(query)
+        except (YaqlLexicalException, YaqlGrammarException) as e:
+            print(str(e))
+            continue
         result = expression.evaluate(data=dataset)
         output = json.dumps(result, indent=2, sort_keys=True)
         print(output)
@@ -207,8 +212,12 @@ def enter_data(last_event = None) -> List[dict]:
         if len(last_event['universes']) > 0:
             last_univ = last_event['universes'][-1]
             last_univ_name = last_univ['name']
-            last_univ_timeline = last_univ['timeline']
-            last_univ_location = last_univ['location']
+            if len(last_univ['timelines']) > 0:
+                last_tl = last_univ['timelines'][-1]
+                last_univ_timeline = last_tl['path']
+                if len(last_tl['locations']) > 0:
+                    last_loc = last_tl['locations'][-1]
+                    last_univ_location = last_loc['path']
     
     current_id = None
     def set_current_id(v):
@@ -235,7 +244,7 @@ def enter_data(last_event = None) -> List[dict]:
     univ_tls_form = univ_form.add_object_field("timelines", multivalue=True)
     univ_tls_form.add_field("path", default_last=True, default=last_univ_timeline)
     univ_locs_form = univ_tls_form.add_object_field("locations", multivalue=True)
-    univ_locs_form.add_ofield("path", default_last=True, default=last_univ_location)
+    univ_locs_form.add_field("path", default_last=True, default=last_univ_location)
     univ_locs_form.add_field("characters", multivalue=True, default_last=True)
     univ_locs_form.add_field("items", multivalue=True, default_last=True)
     
