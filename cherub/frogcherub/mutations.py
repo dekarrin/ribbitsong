@@ -1,34 +1,76 @@
 import json
+import re
 
 import yaql
 from yaql.language.exceptions import YaqlLexicalException, YaqlGrammarException
 
+import jsonpath_ng
+from jsonpath_ng.exceptions import JsonPathParserError
+
+_ansi_escape_re = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+
 def custom(dataset) -> int:
-    engine = yaql.factory.YaqlFactory().create()
+    total_updated = 0
     running = True
     print("Custom data mutation mode.")
-    print("Enter selection YAQL query, then enter mutation expression to be applied to")
-    print("each. ")
-    print("(type \q to quit)")
+    print()
+    print("Enter selection JSONPath query, then enter mutation lambda to be applied to")
+    print("each. For mutation lambdas, '_' is the original value.")
+    print("(type \q to quit, \c to cancel mutation)")
     while running:
         query = input("select> ")
+        query = _ansi_escape_re.sub('', query)
         if query == r'\q':
             running = False
             continue
+        elif query == r'\c':
+            continue
+        
         try:
-            expression = engine(query)
-        except (YaqlLexicalException, YaqlGrammarException) as e:
+            expr = jsonpath_ng.parse(query)
+        except JsonPathParserError as e:
             print(str(e))
             continue
-        result = expression.evaluate(data=dataset)
-        output = json.dumps(result, indent=2, sort_keys=True)
+        except AttributeError:
+            print("Could not parse query, try again")
+            continue
+            
+        matches = expr.find(dataset)
+        if len(matches) < 1:
+            print("(no results)")
+            continue
+        
+        results = [match.value for match in matches]
+        output = json.dumps(results, indent=2, sort_keys=True)
         print(output)
         
-        mutation = input("MUTATE> ")
-        if mutation == r'\q':
+        mutie = input("MUTATE> ")
+        mutie = _ansi_escape_re.sub('', mutie)
+        if query == r'\q':
             running = False
             continue
-        print(type(result))
+        elif query == r'\c':
+            continue
+            
+        mutation_func_str = 'lambda _: ' + mutie
+        mutation_func = eval(mutation_func_str)
+        for m in matches:
+            old_val = m.value
+            new_val = mutation_func(old_val)
+            print("NEW VAL: {!r}".format(new_val))
+            dataset = m.full_path.update(dataset, new_val)
+            
+        # show user the result by selecting the updated data once more
+        updated_matches = expr.find(dataset)
+        if len(updated_matches) < 1:
+            raise ValueError("updated_matches somehow resulted in no results")
+        updated_results = [m.value for m in updated_matches]
+        updated_output = json.dumps(updated_results, indent=2, sort_keys=True)
+        print(output)
+           
+        print("{!r} row(s) updated with mutation lambda".format(len(matches)))
+        total_updated += len(matches)
+    return total_updated
         
 
 def universe_collapse(dataset) -> int:
