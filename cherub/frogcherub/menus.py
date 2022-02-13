@@ -348,9 +348,11 @@ def create_event_tag_field(parent_form, field_name, multivalue=False, nullable=F
     
     char_enters_form = tag_forms[11]
     char_enters_form.add_field("character", default_last=True)
+    char_enters_form.add_field("location", nullable=True)
     
     char_exits_form = tag_forms[12]
     char_exits_form.add_field("character", default_last=True)
+    char_exits_form.add_field("location", nullable=True)
     
     char_falls_asleep_form = tag_forms[13]
     char_falls_asleep_form.add_field("character", default_last=True)
