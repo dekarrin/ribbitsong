@@ -89,6 +89,7 @@ def show_mutate_menu(dataset: dict) -> bool:
     
     while running:
         choices = {
+            "custom": "Use YAQL to select the value to be modified, then enter mutation",
             "universe-collapse": "Convert from flat universe objects to deep",
             "back": "Go back to the main menu"
         }
@@ -107,6 +108,8 @@ def show_mutate_menu(dataset: dict) -> bool:
         modified_documents = 0
         if choice == "back":
             return mutated
+        elif choice == "custom":
+            modified_documents += mutations.custom(dataset)
         elif choice == "universe-collapse":
             modified_documents += mutations.universe_collapse(dataset)
             

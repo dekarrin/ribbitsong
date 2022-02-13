@@ -1,4 +1,35 @@
+import json
 
+import yaql
+from yaql.language.exceptions import YaqlLexicalException, YaqlGrammarException
+
+def custom(dataset) -> int:
+    engine = yaql.factory.YaqlFactory().create()
+    running = True
+    print("Custom data mutation mode.")
+    print("Enter selection YAQL query, then enter mutation expression to be applied to")
+    print("each. ")
+    print("(type \q to quit)")
+    while running:
+        query = input("select> ")
+        if query == r'\q':
+            running = False
+            continue
+        try:
+            expression = engine(query)
+        except (YaqlLexicalException, YaqlGrammarException) as e:
+            print(str(e))
+            continue
+        result = expression.evaluate(data=dataset)
+        output = json.dumps(result, indent=2, sort_keys=True)
+        print(output)
+        
+        mutation = input("MUTATE> ")
+        if mutation == r'\q':
+            running = False
+            continue
+        print(type(result))
+        
 
 def universe_collapse(dataset) -> int:
     modified_count = 0
