@@ -96,7 +96,7 @@ class Wizahd:
             self._comic_page += 1
             self._narrative_link = "immediate"
     
-        self._cursor += 1
+        self._cursor = len(self._events)
         self._events.append({
             'id': str(uuid.uuid4()),
             'name': "",
