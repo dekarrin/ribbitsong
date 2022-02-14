@@ -15,13 +15,51 @@ class Wizahd:
         self._work = "homestuck"
         self._narrative_link = "causal"
         
-    def scene_change(self, new_location):
-        last_event_in_loc = None
+    def add_char_leave(self):
+        
+        
+    def scene_change(self, new_location, new_timeline=None, new_universe=None):
+        if new_timeline is not None:
+            dest_timeline = new_timeline
+        else:
+            dest_timeline = self._timeline
+            
+        if new_universe is not None:
+            dest_universe = new_universe
+        else:
+            dest_universe = self._universe
+        
+        self._items = list()
+        self._chars = list()
+        found = False
         for evt in reversed(self._events):
             for univ in evt['universes']:
-                if univ['name'] == self._universe:
-                    
-                    
+                if univ['name'] == dest_universe:
+                    for tl in univ['timelines']:
+                        if tl['path'] == dest_timeline:
+                            for loc in tl['locations']:
+                                if loc['path'] == new_location:
+                                    self._items = list(loc['items'])
+                                    self._chars = list(loc['characters'])
+                                    found = True
+                                    break
+                            if found:
+                                break
+                    if found:
+                        break
+            if found:
+                break
+        
+        self._location = new_location
+        self._events[_self._cursor]['universes'][0]['timelines'][0]['locations'][0]['path'] = new_location
+        
+        if new_timeline is not None:
+            self._timeline = new_timeline
+            self._events[_self._cursor]['universes'][0]['timelines'][0]['path'] = new_timeline
+            
+        if new_universe is not None:
+            self._universe = new_universe
+            self._events[_self._cursor]['universes'][0]['name'] = new_universe
         
     def next(self):
         self.goto(self._cursor + 1)
