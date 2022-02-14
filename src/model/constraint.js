@@ -60,7 +60,7 @@ class RelativeConstraint extends Constraint {
 class CausalConstraint extends Constraint {
   constructor(citation, refEvent, isAfter=true) {
     super(ConstraintTypes.CAUSAL);
-    this.time = time;
+    this.time = time; // TODO shouldnt this be ref event?
     this.citation = citation;
   }
 };

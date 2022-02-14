@@ -14,9 +14,82 @@ class Wizahd:
         self._comic_page = 0
         self._work = "homestuck"
         self._narrative_link = "causal"
+        self._following = None
         
-    def add_char_leave(self):
+    def go_into_location(self, new_loc: str, to_panel=0):
+        if self._following is None:
+            raise ValueError("Not following any char yet")
         
+        self.advance_narrative(to_panel)
+        self.add_char_exit()
+        self.advance_narrative(to_panel)
+        self.scene_change(new_location)
+        self.add_char_enter()            
+        
+    def add_char_exit(self, from_loc=None, char=None):
+        if from_loc is None:
+            from_loc = self._location
+            
+        if char is None:
+            if self._following is None:
+                raise ValueError("No char specified but not following any char either")
+            char = self._following
+        
+        self._events[_self._cursor]['tags'].append({
+            "type": "char_exits_location",
+            "character": char,
+            "location": from_loc
+        })
+        
+    def add_char_enter(self, to_loc=None, char=None):
+        if to_loc is None:
+            to_loc = self._location
+            
+        if char is None:
+            if self._following is None:
+                raise ValueError("No char specified but not following any char either")
+            char = self._following
+        
+        self._events[_self._cursor]['tags'].append({
+            "type": "char_enters_location",
+            "character": char,
+            "location": to_loc
+        })
+        
+    def get_last_event(self, location=None, timeline=None, univ=None) -> Tuple[Dict, Dict]:
+        """
+        Get the last entered event that occured at the given locality in paradox space.
+        
+        Return the event that occured there as well as a dict containing the location info.
+        These will be None if the locality has not yet been visited.
+        """
+        if location is None:
+            location = self._location
+        if timeline is None:
+            timeline = self._timeline
+        if univ is None:
+            univ = self._universe
+            
+        found_event = None
+        found_locinfo = None
+        for evt in reversed(self._events):
+            for univ in evt['universes']:
+                if univ['name'] == univ:
+                    for tl in univ['timelines']:
+                        if tl['path'] == timeline:
+                            for loc in tl['locations']:
+                                if loc['path'] == location:
+                                    found_event = evt
+                                    found_locinfo = loc
+                                    break
+                            if found_event is not None:
+                                break
+                    if found_event is not None:
+                        break
+            if found_event is not None:
+                break
+        
+        return found_event, found_locinfo
         
     def scene_change(self, new_location, new_timeline=None, new_universe=None):
         if new_timeline is not None:
@@ -31,24 +104,11 @@ class Wizahd:
         
         self._items = list()
         self._chars = list()
-        found = False
-        for evt in reversed(self._events):
-            for univ in evt['universes']:
-                if univ['name'] == dest_universe:
-                    for tl in univ['timelines']:
-                        if tl['path'] == dest_timeline:
-                            for loc in tl['locations']:
-                                if loc['path'] == new_location:
-                                    self._items = list(loc['items'])
-                                    self._chars = list(loc['characters'])
-                                    found = True
-                                    break
-                            if found:
-                                break
-                    if found:
-                        break
-            if found:
-                break
+        
+        evt, locinfo = self.get_last_event(new_location, dest_timeline, dest_universe)
+        if locinfo is not None:
+            items, characters = do_item_playback
+        
         
         self._location = new_location
         self._events[_self._cursor]['universes'][0]['timelines'][0]['locations'][0]['path'] = new_location
@@ -135,6 +195,14 @@ class Wizahd:
                 }
             ]
         })
+        
+    @property
+    def following(self) -> str:
+        return self._following
+        
+    @following.setter
+    def following(self, value: str):
+        self._following = value
         
     @property
     def id(self) -> str:

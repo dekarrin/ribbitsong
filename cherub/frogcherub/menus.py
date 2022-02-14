@@ -412,7 +412,8 @@ def create_constraint_field(parent_form, field_name, id_default, multivalue=Fals
     create_citation_field(relative_form, "citation", nullable=False)
     
     causal_form = constraint_forms[6]
-    causal_form.add_field("time", default_last=True)
+    causal_form.add_field("ref_event", default_last=True)
+    causal_form.add_field("is_after", type=bool, default_last=True)
     create_citation_field(causal_form, "citation", nullable=False)
     
     sync_form = constraint_forms[7]
