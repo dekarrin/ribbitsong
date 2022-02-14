@@ -1,9 +1,11 @@
 import uuid
-from typing import Optional
+from typing import Optional, Dict, List
+
 
 class Citation:
     types = ['dialog', 'narration', 'media', 'commentary']
 
+    # noinspection PyShadowingBuiltins
     def __init__(self, type: str, **kwargs):
         type = type.lower()
         if type not in Citation.types:
@@ -36,6 +38,12 @@ class Citation:
             self._page = int(kwargs.get('page', self._page))
         else:
             raise ValueError("should never happen")
+
+    def copy(self) -> 'Citation':
+        """
+        Return a deep copy of this Citation.
+        """
+        return Citation.from_dict(self.to_dict())
             
     def __eq__(self, other) -> bool:
         if not isinstance(other, Citation):
@@ -180,7 +188,7 @@ class Citation:
     def paragraph(self, value: int):
         if self.type != "narration":
             raise NotImplementedError("{!r}-type citations do not have a paragraph property".format(self.type))
-        self._paragraph = paragraph
+        self._paragraph = value
         
     @property
     def sentence(self) -> int:
@@ -248,6 +256,7 @@ class Constraint:
         'sync'
     ]
 
+    # noinspection PyShadowingBuiltins
     def __init__(self, type: str, **kwargs):
         type = type.lower()
         if type not in Constraint.types:
@@ -293,8 +302,15 @@ class Constraint:
             cit = kwargs.get('citation', self._citation)
             if isinstance(cit, dict):
                 cit = Citation.from_dict(cit)
+            self._citation = cit
                 
         # dont raise value error because we are not covering narrative_immediate
+
+    def copy(self) -> 'Constraint':
+        """
+        Return a deep copy of this Constraint.
+        """
+        return Constraint.from_dict(self.to_dict())
             
     def __eq__(self, other) -> bool:
         if not isinstance(other, Constraint):
@@ -485,11 +501,16 @@ class Constraint:
             raise NotImplementedError("{!r}-type constraints do not have a distance property".format(self.type))
         return self._distance
         
-    @ditance.setter
+    @distance.setter
     def distance(self, value: str):
         if self.type != 'relative':
             raise NotImplementedError("{!r}-type constraints do not have a distance property".format(self.type))
         self._distance = value
+
+    @staticmethod
+    def from_dict(d: Dict) -> 'Constraint':
+        t = d['type'].lower()
+        return Constraint(t, **d)
         
 
 class Tag:
@@ -513,6 +534,7 @@ class Tag:
         "item_split"
     ]
 
+    # noinspection PyShadowingBuiltins
     def __init__(self, type: str, **kwargs):
         type = type.lower()
         if type not in Tag.types:
@@ -528,8 +550,8 @@ class Tag:
         self._consumed = False
         self._giver = ""  # TODO: merge with 'actor'
         self._receiver = ""  # TODO: merge with recipient
-        self._port_in_event  # TODO: merge with 'opposite_port_event'
-        self._port_out_event  # TODO: merge with 'opposite_port_event'
+        self._port_in_event = ""  # TODO: merge with 'opposite_port_event'
+        self._port_out_event = ""  # TODO: merge with 'opposite_port_event'
         self._location = ""
         self._source_items = []
         self._result_items = []
@@ -555,7 +577,7 @@ class Tag:
             self._consumed = bool(kwargs.get('consumed', self._consumed))
         elif self.type == "char_gives_item_to_char":
             self._giver = kwargs.get('giver', self._giver)
-            self._receiver = bool(kwargs.get('receiver', self._receiver))
+            self._receiver = kwargs.get('receiver', self._receiver)
             self._item = kwargs.get('item', self._item)
         elif self.type == "char_dies":
             self._character = kwargs.get('character', self._character)
@@ -591,55 +613,107 @@ class Tag:
             self._results_in_sylladex = list(kwargs.get('results_in_sylladex', self._results_in_sylladex))
         else:
             raise ValueError("should never happen")
+
+    def copy(self) -> 'Tag':
+        """
+        Return a deep copy of this Tag.
+        """
+        return Tag.from_dict(self.to_dict())
             
     def __eq__(self, other) -> bool:
-        if not isinstance(other, Constraint):
+        if not isinstance(other, Tag):
             return False
         if other.type != self.type:
             return False
-            
-        if self.type == 'narrative_entrypoint':
-            pass  # nothing else to check
-        elif self.type == 'narrative_jump':
-            if self.ref_event != other.ref_event:
+
+        if self.type == 'appearance_changed':
+            if self.recipient != other.recipient:
                 return False
-            if self.is_after != other.is_after:
+            if self.appearance != other.appearance:
                 return False
-        elif self.type == 'narrative_causal':
-            if self.ref_event != other.ref_event:
+        elif self.type == "state_changed":
+            if self.recipient != other.recipient:
                 return False
-            if self.is_after != other.is_after:
+            if self.property_name != other.property_name:
                 return False
-        elif self.type == 'narrative_immediate':
-            if self.ref_event != other.ref_event:
+            if self.value != other.value:
                 return False
-            if self.is_after != other.is_after:
+        elif self.type == "char_obtains_item":
+            if self.character != other.character:
                 return False
-        elif self.type == 'absolute':
-            if self.time != other.time:
+            if self.item != other.item:
                 return False
-            if self.citation != other.citation:
+        elif self.type == "char_drops_item":
+            if self.character != other.character:
                 return False
-        elif self.type == 'relative':
-            if self.ref_event != other.ref_event:
+            if self.item != other.item:
                 return False
-            if self.is_after != other.is_after:
+        elif self.type == "char_uses_item":
+            if self.character != other.character:
                 return False
-            if self.distance != other.distance:
+            if self.item != other.item:
                 return False
-            if self.citation != other.citation:
+            if self.consumed != other.consumed:
                 return False
-        elif self.type == 'causal':
-            if self.ref_event != other.ref_event:
+        elif self.type == "char_gives_item_to_char":
+            if self.giver != other.giver:
                 return False
-            if self.is_after != other.is_after:
+            if self.receiver != other.receiver:
                 return False
-            if self.citation != other.citation:
+            if self.item != other.item:
                 return False
-        elif self.type == 'sync':
-            if self.ref_event != other.ref_event:
+        elif self.type == "char_dies":
+            if self.character != other.character:
                 return False
-            if self.citation != other.citation:
+        elif self.type == "char_born":
+            if self.character != other.character:
+                return False
+        elif self.type == "char_resurrected":
+            if self.character != other.character:
+                return False
+        elif self.type == "char_ports_in":
+            if self.character != other.character:
+                return False
+            if self.port_out_event != other.port_out_event:
+                return False
+        elif self.type == "char_ports_out":
+            if self.character != other.character:
+                return False
+            if self.port_in_event != other.port_in_event:
+                return False
+        elif self.type == "char_enters_location":
+            if self.character != other.character:
+                return False
+            if self.location != other.location:
+                return False
+        elif self.type == "char_exits_location":
+            if self.character != other.character:
+                return False
+            if self.location != other.location:
+                return False
+        elif self.type == "char_falls_asleep":
+            if self.character != other.character:
+                return False
+        elif self.type == "char_wakes_up":
+            if self.character != other.character:
+                return False
+        elif self.type == "item_merged":
+            if self.source_items != other.source_items:
+                return False
+            if self.result_items != other.result_items:
+                return False
+            if self.results_in_sylladex != other.results_in_sylladex:
+                return False
+            if self.by != other.by:
+                return False
+        elif self.type == "item_split":
+            if self.source_items != other.source_items:
+                return False
+            if self.result_items != other.result_items:
+                return False
+            if self.results_in_sylladex != other.results_in_sylladex:
+                return False
+            if self.by != other.by:
                 return False
         else:
             raise ValueError("should never happen")
@@ -647,48 +721,97 @@ class Tag:
         return True
         
     def __hash__(self) -> int:
-        if self.type == 'narrative_entrypoint':
-            return hash((self.type,))
-        if self.type == 'narrative_immediate':
-            return hash((self.type, self.ref_event, self.is_after))
-        elif self.type == 'narrative_jump':
-            return hash((self.type, self.ref_event, self.is_after))
-        elif self.type == 'narrative_causal':
-            return hash((self.type, self.ref_event, self.is_after))
-        elif self.type == 'absolute':
-            return hash((self.type, self.time, hash(self.citation)))
-        elif self.type == 'relative':
-            return hash((self.type, self.ref_event, self.is_after, self.distance, hash(self.citation)))
-        elif self.type == 'causal':
-            return hash((self.type, self.ref_event, self.is_after, hash(self.citation)))
-        elif self.type == 'sync':
-            return hash((self.type, self.ref_event, hash(self.citation)))
+        if self.type == 'appearance_changed':
+            return hash((self.type, self.recipient, self.appearance))
+        elif self.type == "state_changed":
+            return hash((self.type, self.recipient, self.property_name, self.value))
+        elif self.type == "char_obtains_item":
+            return hash((self.type, self.character, self.item))
+        elif self.type == "char_drops_item":
+            return hash((self.type, self.character, self.item))
+        elif self.type == "char_uses_item":
+            return hash((self.type, self.character, self.item, self.consumed))
+        elif self.type == "char_gives_item_to_char":
+            return hash((self.type, self.giver, self.receiver, self.item))
+        elif self.type == "char_dies":
+            return hash((self.type, self.character))
+        elif self.type == "char_born":
+            return hash((self.type, self.character))
+        elif self.type == "char_resurrected":
+            return hash((self.type, self.character))
+        elif self.type == "char_ports_in":
+            return hash((self.type, self.character, self.port_out_event))
+        elif self.type == "char_ports_out":
+            return hash((self.type, self.character, self.port_in_event))
+        elif self.type == "char_enters_location":
+            return hash((self.type, self.character, self.location))
+        elif self.type == "char_exits_location":
+            return hash((self.type, self.character, self.location))
+        elif self.type == "char_falls_asleep":
+            return hash((self.type, self.character))
+        elif self.type == "char_wakes_up":
+            return hash((self.type, self.character))
+        elif self.type == "item_merged":
+            return hash((self.type, self.source_items, self.result_items, self.results_in_sylladex, self.by))
+        elif self.type == "item_split":
+            return hash((self.type, self.source_items, self.result_items, self.results_in_sylladex, self.by))
         else:
             raise ValueError("should never happen")
             
     def __str__(self):
-        s = "Constraint<{:s} ".format(self.type)
-        if self.type == "narrative_entrypoint":
-            pass  # nothing further to add
-        elif self.type == "narrative_immediate":
-            s += "{:s}{:s}".format('+' if self.is_after else '-', self.ref_event)
-        elif self.type == "narrative_jump":
-            s += "{:s}{:s}".format('+' if self.is_after else '-', self.ref_event)
-        elif self.type == "narrative_causal":
-            s += "{:s}{:s}".format('+' if self.is_after else '-', self.ref_event)
-        elif self.type == "absolute":
-            s += "@{:s} ({:s}cited)".format(self.time, "" if self.citation is not None else "not ")
-        elif self.type == "relative":
-            after_mark = '+' if self.is_after else '-'
-            cite_mark = "" if self.citation is not None else "not "
-            s += "{:s}{:s} by {:s} ({:s}cited)".format(after_mark, self.ref_event, self.distance, cite_mark)
-        elif self.type == "causal":
-            after_mark = '+' if self.is_after else '-'
-            cite_mark = "" if self.citation is not None else "not "
-            s += "{:s}{:s} ({:s}cited)".format(after_mark, self.ref_event, cite_mark)
-        elif self.type == "sync":
-            cite_mark = "" if self.citation is not None else "not "
-            s += "WITH {:s} ({:s}cited)".format(self.ref_event, cite_mark)
+        s = "Tag<".format(self.type)
+        if self.type == "appearance_changed":
+            s += "APPEARANCE OF {:s} -> {:s}".format(self.recipient, self.appearance)
+        elif self.type == "state_changed":
+            s += "{:s}.{:s} = {!r}".format(self.recipient, self.property_name, self.value)
+        elif self.type == "char_obtains_item":
+            s += "{:s} GETS {:s}".format(self.character, self.item)
+        elif self.type == "char_drops_item":
+            s += "{:s} DROPS {:s}".format(self.character, self.item)
+        elif self.type == "char_uses_item":
+            s += "{:s} USES {:s}{:s}".format(self.character, self.item, " UP" if self.consumed else "")
+        elif self.type == "char_gives_item_to_char":
+            s += "{:s} GIVES {:s} TO {:s}".format(self.giver, self.item, self.receiver)
+        elif self.type == "char_dies":
+            s += "{:s} DIES".format(self.character)
+        elif self.type == "char_born":
+            s += "{:s} IS BORN".format(self.character)
+        elif self.type == "char_resurrected":
+            s += "{:s} IS RESURRECTED".format(self.character)
+        elif self.type == "char_ports_in":
+            port_mark = ""
+            if self.port_out_event is not None and self.port_out_event != "":
+                port_mark = "FROM {:s}".format(self.port_out_event)
+            s += "{:s} PORTS IN{:s}".format(self.character, port_mark)
+        elif self.type == "char_ports_out":
+            port_mark = ""
+            if self.port_in_event is not None and self.port_in_event != "":
+                port_mark = "TO {:s}".format(self.port_in_event)
+            s += "{:s} PORTS OUT{:s}".format(self.character, port_mark)
+        elif self.type == "char_enters_location":
+            loc_mark = " " + self.location if self.location is not None and self.location != "" else ""
+            s += "{:s} ENTERS{:s}".format(self.character, loc_mark)
+        elif self.type == "char_exits_location":
+            loc_mark = " " + self.location if self.location is not None and self.location != "" else ""
+            s += "{:s} EXITS{:s}".format(self.character, loc_mark)
+        elif self.type == "char_falls_asleep":
+            s += "{:s} FALLS ASLEEP".format(self.character)
+        elif self.type == "char_wakes_up":
+            s += "{:s} WAKES UP".format(self.character)
+        elif self.type == "item_merged":
+            source_mark = '[' + ','.join(self.source_items) + ']'
+            results_mark = '[' + ','.join(self.result_items) + ']'
+            sylladex_mark = '[' + ','.join(self.results_in_sylladex) + ']'
+
+            fmt = "MERGE {:s} -> {:s} BY {!r}, SENDING {:s} TO INVENTORY"
+            s += fmt.format(source_mark, results_mark, self.by, sylladex_mark)
+        elif self.type == "item_split":
+            source_mark = '[' + ','.join(self.source_items) + ']'
+            results_mark = '[' + ','.join(self.result_items) + ']'
+            sylladex_mark = '[' + ','.join(self.results_in_sylladex) + ']'
+
+            fmt = "SPLIT {:s} -> {:s} BY {!r}, SENDING {:s} TO INVENTORY"
+            s += fmt.format(source_mark, results_mark, self.by, sylladex_mark)
         else:
             raise ValueError("should never happen")
             
@@ -697,27 +820,60 @@ class Tag:
         
     def to_dict(self) -> Dict:
         d = {'type': self.type}
-        
-        if self.type == "narrative_entrypoint":
-            pass  # nothing further to add
-        elif self.type in ["narrative_immediate", "narrative_jump", "narrative_causal"]:
-            d['ref_event'] = self.ref_event
-            d['is_after'] = self.is_after
-        elif self.type == "absolute":
-            d['time'] = self.time
-            d['citation'] = None if self.citation is None else self.citation.to_dict()
-        elif self.type == "relative":
-            d['ref_event'] = self.ref_event
-            d['is_after'] = self.is_after
-            d['distance'] = self.distance
-            d['citation'] = None if self.citation is None else self.citation.to_dict()
-        elif self.type == "causal":
-            d['ref_event'] = self.ref_event
-            d['is_after'] = self.is_after
-            d['citation'] = None if self.citation is None else self.citation.to_dict()
-        elif self.type == "sync":
-            d['ref_event'] = self.ref_event
-            d['citation'] = None if self.citation is None else self.citation.to_dict()
+
+        if self.type == 'appearance_changed':
+            d['recipient'] = self.recipient
+            d['appearance'] = self.appearance
+        elif self.type == "state_changed":
+            d['recipient'] = self.recipient
+            d['property'] = self.property_name
+            d['value'] = self.value
+        elif self.type == "char_obtains_item":
+            d['character'] = self.character
+            d['item'] = self.item
+        elif self.type == "char_drops_item":
+            d['character'] = self.character
+            d['item'] = self.item
+        elif self.type == "char_uses_item":
+            d['character'] = self.character
+            d['item'] = self.item
+            d['consumed'] = self.consumed
+        elif self.type == "char_gives_item_to_char":
+            d['giver'] = self.giver
+            d['receiver'] = self.receiver
+            d['item'] = self.item
+        elif self.type == "char_dies":
+            d['character'] = self.character
+        elif self.type == "char_born":
+            d['character'] = self.character
+        elif self.type == "char_resurrected":
+            d['character'] = self.character
+        elif self.type == "char_ports_in":
+            d['character'] = self.character
+            d['port_out_event'] = self.port_out_event
+        elif self.type == "char_ports_out":
+            d['character'] = self.character
+            d['port_in_event'] = self.port_in_event
+        elif self.type == "char_enters_location":
+            d['character'] = self.character
+            d['location'] = self.location
+        elif self.type == "char_exits_location":
+            d['character'] = self.character
+            d['location'] = self.location
+        elif self.type == "char_falls_asleep":
+            d['character'] = self.character
+        elif self.type == "char_wakes_up":
+            d['character'] = self.character
+        elif self.type == "item_merged":
+            d['by'] = self.by
+            d['source_items'] = list(self.source_items)
+            d['result_items'] = list(self.result_items)
+            d['results_in_sylladex'] = list(self.results_in_sylladex)
+        elif self.type == "item_split":
+            d['by'] = self.by
+            d['source_items'] = list(self.source_items)
+            d['result_items'] = list(self.result_items)
+            d['results_in_sylladex'] = list(self.results_in_sylladex)
         else:
             raise ValueError("should never happen")
             
@@ -726,70 +882,455 @@ class Tag:
     @property
     def type(self) -> str:
         return self._type
-        
+
     @property
-    def ref_event(self) -> str:
-        if self.type not in ['narrative_immediate', 'narrative_jump', 'narrative_causal', 'relative', 'causal', 'sync']:
-            raise NotImplementedError("{!r}-type constraints do not have a ref_event property".format(self.type))
-        return self._ref_event
-        
-    @ref_event.setter
-    def ref_event(self, value: str):
-        if self.type not in ['narrative_immediate', 'narrative_jump', 'narrative_causal', 'relative', 'causal', 'sync']:
-            raise NotImplementedError("{!r}-type constraints do not have a ref_event property".format(self.type))
-        self._ref_event = value
-        
+    def recipient(self) -> str:
+        if self.type not in ['appearance_changed', 'state_changed']:
+            raise NotImplementedError("{!r}-type constraints do not have a recipient property".format(self.type))
+        return self._recipient
+
+    @recipient.setter
+    def recipient(self, value: str):
+        if self.type not in ['appearance_changed', 'state_changed']:
+            raise NotImplementedError("{!r}-type constraints do not have a recipient property".format(self.type))
+        self._recipient = value
+
     @property
-    def is_after(self) -> bool:
-        if self.type not in ['narrative_immediate', 'narrative_jump', 'narrative_causal', 'relative', 'causal']:
-            raise NotImplementedError("{!r}-type constraints do not have an is_after property".format(self.type))
-        return self._is_after
-        
-    @is_after.setter
-    def is_after(self, value: bool):
-        if self.type not in ['narrative_immediate', 'narrative_jump', 'narrative_causal', 'relative', 'causal']:
-            raise NotImplementedError("{!r}-type constraints do not have an is_after property".format(self.type))
-        self._is_after = value
-        
+    def appearance(self) -> str:
+        if self.type != 'appearance_changed':
+            raise NotImplementedError("{!r}-type constraints do not have an appearance property".format(self.type))
+        return self._appearance
+
+    @appearance.setter
+    def appearance(self, value: str):
+        if self.type != 'appearance_changed':
+            raise NotImplementedError("{!r}-type constraints do not have an appearance property".format(self.type))
+        self._appearance = value
+
     @property
-    def citation(self) -> Optional[Citation]:
-        if self.type not in ['absolute', 'relative', 'causal', 'sync']:
-            raise NotImplementedError("{!r}-type constraints do not have a citation property".format(self.type))
-        return self._citation
-        
-    @citation.setter
-    def citation(self, value: Optional[Citation]):
-        if self.type not in ['absolute', 'relative', 'causal', 'sync']:
-            raise NotImplementedError("{!r}-type constraints do not have a citation property".format(self.type))
-        self._citation = value
-        
+    def property_name(self) -> str:
+        if self.type != 'state_changed':
+            raise NotImplementedError("{!r}-type constraints do not have a property_name property".format(self.type))
+        return self._property
+
+    @property_name.setter
+    def property_name(self, value: str):
+        if self.type != 'state_changed':
+            raise NotImplementedError("{!r}-type constraints do not have a property_name property".format(self.type))
+        self._property = value
+
     @property
-    def time(self) -> str:
-        if self.type != 'absolute':
-            raise NotImplementedError("{!r}-type constraints do not have a time property".format(self.type))
-        return self._time
-        
-    @time.setter
-    def time(self, value: str):
-        if self.type != 'absolute':
-            raise NotImplementedError("{!r}-type constraints do not have a time property".format(self.type))
-        self._time = value
-        
+    def value(self) -> str:
+        if self.type != 'state_changed':
+            raise NotImplementedError("{!r}-type constraints do not have a value property".format(self.type))
+        return self._value
+
+    @value.setter
+    def value(self, value: str):
+        if self.type != 'state_changed':
+            raise NotImplementedError("{!r}-type constraints do not have a value property".format(self.type))
+        self._value = value
+
     @property
-    def distance(self) -> str:
-        if self.type != 'relative':
-            raise NotImplementedError("{!r}-type constraints do not have a distance property".format(self.type))
-        return self._distance
-        
-    @ditance.setter
-    def distance(self, value: str):
-        if self.type != 'relative':
-            raise NotImplementedError("{!r}-type constraints do not have a distance property".format(self.type))
-        self._distance = value
+    def character(self) -> str:
+        if self.type not in [
+            'char_obtains_item',
+            'char_drops_item',
+            'char_uses_item',
+            'char_gives_item_to_char',
+            'char_dies',
+            'char_born',
+            'char_resurrected',
+            'char_ports_in',
+            'char_ports_out',
+            'char_enters_location',
+            'char_exits_location',
+            'char_falls_asleep',
+            'char_wakes_up'
+        ]:
+            raise NotImplementedError("{!r}-type constraints do not have a character property".format(self.type))
+        return self._character
+
+    @character.setter
+    def character(self, value: str):
+        if self.type not in [
+            'char_obtains_item',
+            'char_drops_item',
+            'char_uses_item',
+            'char_gives_item_to_char',
+            'char_dies',
+            'char_born',
+            'char_resurrected',
+            'char_ports_in',
+            'char_ports_out',
+            'char_enters_location',
+            'char_exits_location',
+            'char_falls_asleep',
+            'char_wakes_up'
+        ]:
+            raise NotImplementedError("{!r}-type constraints do not have a character property".format(self.type))
+        self._character = value
+
+    @property
+    def item(self) -> str:
+        if self.type not in ['char_obtains_item', 'char_drops_item', 'char_uses_item', 'char_gives_item_to_char']:
+            raise NotImplementedError("{!r}-type constraints do not have an item property".format(self.type))
+        return self._item
+
+    @item.setter
+    def item(self, value: str):
+        if self.type not in ['char_obtains_item', 'char_drops_item', 'char_uses_item', 'char_gives_item_to_char']:
+            raise NotImplementedError("{!r}-type constraints do not have an item property".format(self.type))
+        self._item = value
+
+    @property
+    def consumed(self) -> bool:
+        if self.type != 'char_uses_item':
+            raise NotImplementedError("{!r}-type constraints do not have a consumed property".format(self.type))
+        return self._consumed
+
+    @consumed.setter
+    def consumed(self, value: bool):
+        if self.type != 'char_uses_item':
+            raise NotImplementedError("{!r}-type constraints do not have a consumed property".format(self.type))
+        self._consumed = value
+
+    @property
+    def giver(self) -> str:
+        if self.type != 'char_gives_item_to_char':
+            raise NotImplementedError("{!r}-type constraints do not have a giver property".format(self.type))
+        return self._giver
+
+    @giver.setter
+    def giver(self, value: str):
+        if self.type != 'char_gives_item_to_char':
+            raise NotImplementedError("{!r}-type constraints do not have a giver property".format(self.type))
+        self._giver = value
+
+    @property
+    def receiver(self) -> str:
+        if self.type != 'char_gives_item_to_char':
+            raise NotImplementedError("{!r}-type constraints do not have a receiver property".format(self.type))
+        return self._receiver
+
+    @receiver.setter
+    def receiver(self, value: str):
+        if self.type != 'char_gives_item_to_char':
+            raise NotImplementedError("{!r}-type constraints do not have a receiver property".format(self.type))
+        self._receiver = value
+
+    @property
+    def port_in_event(self) -> str:
+        if self.type != 'char_ports_out':
+            raise NotImplementedError("{!r}-type constraints do not have a port_in_event property".format(self.type))
+        return self._port_in_event
+
+    @port_in_event.setter
+    def port_in_event(self, value: str):
+        if self.type != 'char_ports_out':
+            raise NotImplementedError("{!r}-type constraints do not have a port_in_event property".format(self.type))
+        self._port_in_event = value
+
+    @property
+    def port_out_event(self) -> str:
+        if self.type != 'char_ports_in':
+            raise NotImplementedError("{!r}-type constraints do not have a port_out_event property".format(self.type))
+        return self._port_out_event
+
+    @port_out_event.setter
+    def port_out_event(self, value: str):
+        if self.type != 'char_ports_in':
+            raise NotImplementedError("{!r}-type constraints do not have a port_out_event property".format(self.type))
+        self._port_out_event = value
+
+    @property
+    def location(self) -> str:
+        if self.type not in ['char_exits_location', 'char_enters_location']:
+            raise NotImplementedError("{!r}-type constraints do not have a location property".format(self.type))
+        return self._location
+
+    @location.setter
+    def location(self, value: str):
+        if self.type not in ['char_exits_location', 'char_enters_location']:
+            raise NotImplementedError("{!r}-type constraints do not have a location property".format(self.type))
+        self._location = value
+
+    @property
+    def by(self) -> str:
+        if self.type not in ['item_split', 'item_merged']:
+            raise NotImplementedError("{!r}-type constraints do not have a by property".format(self.type))
+        return self._by
+
+    @by.setter
+    def by(self, value: str):
+        if self.type not in ['item_split', 'item_merged']:
+            raise NotImplementedError("{!r}-type constraints do not have a by property".format(self.type))
+        self._by = value
+
+    @property
+    def source_items(self) -> List[str]:
+        if self.type not in ['item_split', 'item_merged']:
+            raise NotImplementedError("{!r}-type constraints do not have a source_items property".format(self.type))
+        return self._source_items
+
+    @source_items.setter
+    def source_items(self, value: List[str]):
+        if self.type not in ['item_split', 'item_merged']:
+            raise NotImplementedError("{!r}-type constraints do not have a source_items property".format(self.type))
+        self._source_items = value
+
+    @property
+    def result_items(self) -> List[str]:
+        if self.type not in ['item_split', 'item_merged']:
+            raise NotImplementedError("{!r}-type constraints do not have a result_items property".format(self.type))
+        return self._result_items
+
+    @result_items.setter
+    def result_items(self, value: List[str]):
+        if self.type not in ['item_split', 'item_merged']:
+            raise NotImplementedError("{!r}-type constraints do not have a result_items property".format(self.type))
+        self._result_items = value
+
+    @property
+    def results_in_sylladex(self) -> List[str]:
+        if self.type not in ['item_split', 'item_merged']:
+            msg = "{!r}-type constraints do not have a results_in_sylladex property"
+            raise NotImplementedError(msg.format(self.type))
+        return self._results_in_sylladex
+
+    @results_in_sylladex.setter
+    def results_in_sylladex(self, value: List[str]):
+        if self.type not in ['item_split', 'item_merged']:
+            msg = "{!r}-type constraints do not have a results_in_sylladex property"
+            raise NotImplementedError(msg.format(self.type))
+        self._results_in_sylladex = value
+
+    @staticmethod
+    def from_dict(d: Dict) -> 'Tag':
+        t = d['type'].lower()
+        return Tag(t, **d)
+
+
+class Location:
+    """
+    Represents a location and the items and characters it has in it at a particular moment of the narrative.
+    """
+    def __init__(self, **kwargs):
+        self.path = kwargs.get('path', "")
+        self.characters = list(kwargs.get('characters', list()))
+        self.items = list(kwargs.get('items', list()))
+
+    def copy(self) -> 'Location':
+        return Location(path=self.path, items=self.items, characters=self.characters)
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, Location):
+            return False
+        if self.path != other.path:
+            return False
+        if self.items != other.items:
+            return False
+        if self.characters != other.characters:
+            return False
+        return True
+
+    def __hash__(self) -> int:
+        return hash((self.path, self.items, self.characters))
+
+    def __str__(self) -> str:
+        chars_mark = '[' + ','.join(self.characters) + ']'
+        items_mark = '[' + ','.join(self.items) + ']'
+        s = "<{:s}: chars={:s}, items={:s}>".format(self.path, chars_mark, items_mark)
+        return s
+
+    def to_dict(self) -> Dict:
+        d = {
+            'path': self.path,
+            'characters': self.characters,
+            'items': self.items
+        }
+        return d
+
+    @staticmethod
+    def from_dict(d: Dict) -> 'Location':
+        return Location(**d)
+
+
+class Timeline:
+    """
+    Represents all relevant locations within a timeline at a particular moment of the narrative.
+    """
+    def __init__(self, **kwargs):
+        self.path = kwargs.get('path', "")
+        self.locations: List[Location] = list()
+
+        locs = list(kwargs.get('locations', list()))
+        for loc in locs:
+            if isinstance(loc, dict):
+                loc = Location.from_dict(loc)
+            self.locations.append(loc)
+
+    def copy(self) -> 'Timeline':
+        return Timeline(path=self.path, locations=self.locations)
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, Timeline):
+            return False
+        if self.path != other.path:
+            return False
+        if self.locations != other.locations:
+            return False
+        return True
+
+    def __hash__(self) -> int:
+        return hash((self.path, self.locations))
+
+    def __str__(self) -> str:
+        return "<{:s}: locations={:s}>".format(self.path, str(self.locations))
+
+    def to_dict(self) -> Dict:
+        d = {
+            'path': self.path,
+            'locations': [loc.to_dict() for loc in self.locations]
+        }
+
+        return d
+
+    @staticmethod
+    def from_dict(d: Dict) -> 'Timeline':
+        return Timeline(**d)
+
+
+class Universe:
+    """
+    Represents all relevant timelines within a universe at a particular moment of the narrative.
+    """
+
+    def __init__(self, **kwargs):
+        self.name = kwargs.get('name', "")
+        self.timelines: List[Location] = list()
+
+        tls = list(kwargs.get("timelines", list()))
+        for tl in tls:
+            if isinstance(tl, dict):
+                tl = Timeline.from_dict(tl)
+            self.timelines.append(tl)
+
+    def copy(self) -> 'Universe':
+        return Universe(name=self.name, timelines=self.timelines)
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, Universe):
+            return False
+        if self.name != other.name:
+            return False
+        if self.timelines != other.timelines:
+            return False
+        return True
+
+    def __hash__(self) -> int:
+        return hash((self.name, self.timelines))
+
+    def __str__(self) -> str:
+        return "<{:s}: timelines={:s}>".format(self.name, str(self.timelines))
+
+    def to_dict(self) -> Dict:
+        d = {
+            'name': self.name,
+            'timelines': [tl.to_dict() for tl in self.timelines]
+        }
+
+        return d
+
+    @staticmethod
+    def from_dict(d: Dict) -> 'Universe':
+        return Universe(**d)
+
 
 class Event:
     def __init__(self, **kwargs):
-        self.id = kwargs.get('id', uuid.uuid4())
-        self.name = kwargs.get('name', "")
-        self.description = kwargs.get('description', "")
-        
+        self.id = str(kwargs.get('id', uuid.uuid4()))
+        self.name = str(kwargs.get('name', ""))
+        self.description = str(kwargs.get('description', ""))
+        self.portrayed_in: Optional[Citation] = None
+        self.citations: List[Citation] = list()
+        self.constraints: List[Constraint] = list()
+        self.tags: List[Tag] = list()
+        self.universes: List[Universe] = list()
+
+        portrayed_in = kwargs.get('portrayed_in', self.portrayed_in)
+        if isinstance(portrayed_in, dict):
+            portrayed_in = Citation.from_dict(portrayed_in)
+        self.portrayed_in = portrayed_in
+
+        citations = list(kwargs.get('citations', self.citations))
+        for cit in citations:
+            if isinstance(cit, dict):
+                cit = Citation.from_dict(cit)
+            self.citations.append(cit)
+
+        constraints = list(kwargs.get('constraints', self.constraints))
+        for con in constraints:
+            if isinstance(con, dict):
+                con = Constraint.from_dict(con)
+            self.constraints.append(con)
+
+        tags = list(kwargs.get('tags', self.tags))
+        for t in tags:
+            if isinstance(t, dict):
+                t = Tag.from_dict(t)
+            self.tags.append(t)
+
+        univs = list(kwargs.get('universes', self.universes))
+        for u in univs:
+            if isinstance(u, dict):
+                u = Universe.from_dict(u)
+            self.universes.append(u)
+
+    def copy(self) -> 'Event':
+        return Event.from_dict(self.to_dict())
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, Event):
+            return False
+        if self.id != other.id:
+            return False
+        if self.name != other.name:
+            return False
+        if self.description != other.description:
+            return False
+        if self.portrayed_in != other.portrayed_in:
+            return False
+        if self.citations != other.citations:
+            return False
+        if self.constraints != other.constraints:
+            return False
+        if self.tags != other.tags:
+            return False
+        if self.universes != other.universes:
+            return False
+        return True
+
+    def __hash__(self) -> int:
+        return hash((self.id, self.name, self.description, self.portrayed_in, self.citations, self.constraints, self.tags, self.universes))
+
+    def __str__(self) -> str:
+        return "Event<{:s} {!r}>".format(self.id, self.name)
+
+    def to_dict(self) -> Dict:
+        d = {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description,
+            'portrayed_in': self.portrayed_in.to_dict() if self.portrayed_in is not None else None,
+            'citations': [c.to_dict() for c in self.citations],
+            'constraints': [c.to_dict() for c in self.constraints],
+            'tags': [t.to_dict() for t in self.tags],
+            'universes': [u.to_dict() for u in self.universes]
+        }
+
+        return d
+
+    @staticmethod
+    def from_dict(d: Dict) -> 'Event':
+        return Event(**d)

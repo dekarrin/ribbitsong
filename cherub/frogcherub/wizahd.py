@@ -1,5 +1,7 @@
 import uuid
 
+from typing import Tuple, Dict
+
 class Wizahd:
     def __init__(self, events):
         self._cursor = -1

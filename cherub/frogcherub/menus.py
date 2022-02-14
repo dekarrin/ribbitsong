@@ -8,6 +8,7 @@ import yaql
 from yaql.language.exceptions import YaqlLexicalException, YaqlGrammarException
 import json
 
+
 def show_main_menu(start_file: Optional[str] = None):
     unsaved_mutations = False
     last_filename = None
