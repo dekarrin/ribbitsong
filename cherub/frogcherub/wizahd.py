@@ -22,7 +22,18 @@ class Wizahd:
         
         # TODO: default the above to 'last event'
         
-    def go_into_location(self, new_loc: str, to_panel=0):
+    def mc_have_convo(
+        self,
+        other_char: str,
+        other_char_loc: Optional[None] = None,
+        to_panel=0
+    ):
+        if self._following is None:
+            raise ValueError("Not following any char yet")
+            
+        
+        
+    def mc_go_into_location(self, new_loc: str, to_panel=0):
         if self._following is None:
             raise ValueError("Not following any char yet")
         
@@ -30,7 +41,7 @@ class Wizahd:
         self.add_char_exit()
         self.advance_narrative(to_panel)
         self.scene_change(new_location)
-        self.add_char_enter()            
+        self.add_char_enter()
         
     def add_char_exit(self, from_loc=None, char=None):
         if from_loc is None:
@@ -56,12 +67,11 @@ class Wizahd:
         enter_tag = Tag("char_enters_location", character=char, location=from_loc)
         self.current_event.tags.append(exit_tag)
         
-    def get_last_event(self, location=None, timeline=None, univ=None) -> Tuple[Dict, Dict]:
+    def get_last_event(self, location=None, timeline=None, univ=None) -> Event
         """
         Get the last entered event that occured at the given locality in paradox space.
         
-        Return the event that occured there as well as a dict containing the location info.
-        These will be None if the locality has not yet been visited.
+        Return the event that occured there.
         """
         if location is None:
             location = self._location
@@ -71,7 +81,6 @@ class Wizahd:
             univ = self._universe
             
         found_event = None
-        found_locinfo = None
         for evt in reversed(self._events):
             for univ in evt.universes:
                 if univ.name == univ:
@@ -80,7 +89,6 @@ class Wizahd:
                             for loc in tl.locations:
                                 if loc.path == location:
                                     found_event = evt
-                                    found_locinfo = loc
                                     break
                             if found_event is not None:
                                 break
@@ -89,9 +97,18 @@ class Wizahd:
             if found_event is not None:
                 break
         
-        return found_event, found_locinfo
+        return found_event
         
-    def scene_change(self, new_location, new_timeline=None, new_universe=None):
+    def scene_change(self, new_location, new_timeline=None, new_universe=None, preserve=False):
+        """
+        Completely wipe out the current event's scene and replace it with a new one, with default
+        items and characters in it taken from the end of the last event that occured in this
+        locality.
+        
+        :param preserve: If set to true, the current scene is saved and swapped to the next position
+        in the Event instead of being replaced with the new one.
+        """
+        
         if new_timeline is not None:
             dest_timeline = new_timeline
         else:
@@ -101,14 +118,30 @@ class Wizahd:
             dest_universe = new_universe
         else:
             dest_universe = self._universe
+            
+        if self._universe == dest_universe and self._timeline == dest_timeline and self._location = new_location:
+            # we are already here. no need to change anyfin
+            return
+            
+        if preserve:
+            if dest_universe != self._universe:
+                cur_univ = self.current_event.universes[0]
+                self.current_event.universes.append(cur_univ.copy())
+            elif dest_timeline != self._timeline:
+                cur_timeline = self.current_event.universes[0].timelines[0]
+                self.current_event.universes[0].timelines.append(cur_timeline.copy())
+            elif new_location != self._location:
+                cur_location = self.current_event.universes[0].timelines[0].locations[0]
+                self.current_event.universes[0].timelines[0].locations.append(cur_location.copy())
         
         self._items = list()
         self._chars = list()
         
-        evt, locinfo = self.get_last_event(new_location, dest_timeline, dest_universe)
-        if locinfo is not None:
-            items, characters = do_item_playback
-        
+        last_event = self.get_last_event(new_location, dest_timeline, dest_universe)
+        if last_event is not None:
+            loc_at_end = last_event.scene_at_end(new_location, dest_timeline, dest_universe)
+            self._items = loc_at_end.items
+            self._chars = loc_at_end.chars
         
         self._location = new_location
         self.current_event.universes[0].timelines[0].locations[0].path = new_location

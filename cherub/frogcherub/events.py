@@ -1286,6 +1286,93 @@ class Event:
             if isinstance(u, dict):
                 u = Universe.from_dict(u)
             self.universes.append(u)
+            
+    def scene_at_end(
+        self,
+        location: Optional[str] = None
+        timeline: Optional[str] = None,
+        universe: Optional[str] = None,
+    ) -> Location:
+        """
+        Give what the requested location looks like as a result of playing
+        back all event tags present on this event.
+        
+        :param location: The path of the location to get. If none given, the first one in the selected timeline is used.
+        :param timeline: The path of the timeline to get. If none given, the first one in the selected universe is used.
+        :param universe: The name of the universe to get. If none given, the first one is used.
+        :return: A Location that contains the items and characters that remain after all
+        event tags have run.
+        """
+        univ_idx = 0
+        if universe is not None:
+            found = False
+            for idx, univ in enumerate(self.universes):
+                if univ.name == universe:
+                    univ_idx = idx
+                    found = True
+                    break
+            if not found:
+                raise ValueError("event does not occur in universe with name {!r}".format(universe))
+        target_univ = self.universes[univ_idx]
+                
+        tl_idx = 0
+        if timeline is not None:
+            found = False
+            for idx, tl in enumerate(target_univ):
+                if tl.path == timeline:
+                    tl_idx = idx
+                    found = True
+                    break
+            if not found:
+                raise ValueError("event does not occur in timeline with name {!r}".format(timeline))
+        target_tl = target_univ.timelines[tl_idx]
+        
+        loc_idx = 0
+        if location is not None:
+            found = False
+            for idx, loc in enumerate(target_tl):
+                if loc.path == location:
+                    loc_idx = idx
+                    found = True
+            if not found:
+                raise ValueError("event does not occur in location with name {!r}".format(location))
+        target_loc = target_tl.locations[loc_idx]
+        
+        end_items = set(target_loc.items)
+        end_chars = set(target_loc.characters)
+        for t in self.tags:
+            if t.type == "char_obtains_item":
+                if t.character in end_chars:
+                    end_items.remove(t.item)
+            elif t.type == "char_drops_item":
+                if t.character in end_chars:
+                    end_items.add(t.item)
+            elif t.type == "char_uses_item":
+                if t.character in end_chars and t.consumed:
+                    end_items.remove(t.item)
+            elif t.type == "char_ports_in":
+                if t.character not in end_chars:
+                    end_chars.add(t.character)
+            elif t.type == "char_ports_out":
+                if t.character in end_chars:
+                    end_chars.remove(t.character)
+            elif t.type == "char_enters_location":
+                if t.character not in end_chars:
+                    end_chars.add(t.character)
+            elif t.type == "char_exits_location":
+                if t.character in end_chars:
+                    end_chars.remove(t.character)
+            elif t.type == "item_merged" or t.type == "items_split":
+                if t.by is None or t.by in end_chars:
+                    for r in end_items:
+                        if r in t.source_items:
+                            end_items.remove(r)
+                    for r in t.result_items:
+                        if r not in t.results_in_sylladex:
+                            end_items.add(r)
+        
+        end_location = Location(path=target_loc.path, items=list(end_items), characters=list(end_chars))
+        return end_location
 
     def copy(self) -> 'Event':
         return Event.from_dict(self.to_dict())
