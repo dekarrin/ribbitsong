@@ -1,11 +1,13 @@
 import uuid
 
-from typing import Tuple, Dict
+from .events import Event, Tag, Citation, Constraint, Universe, Timeline, Location
+
+from typing import Tuple, Dict, List
 
 class Wizahd:
-    def __init__(self, events):
+    def __init__(self, events: List[Event]):
         self._cursor = -1
-        self._events = []
+        self._events = list(events)
         
         self._universe = ""
         self._timeline = ""
@@ -17,6 +19,8 @@ class Wizahd:
         self._work = "homestuck"
         self._narrative_link = "causal"
         self._following = None
+        
+        # TODO: default the above to 'last event'
         
     def go_into_location(self, new_loc: str, to_panel=0):
         if self._following is None:
@@ -37,11 +41,8 @@ class Wizahd:
                 raise ValueError("No char specified but not following any char either")
             char = self._following
         
-        self._events[_self._cursor]['tags'].append({
-            "type": "char_exits_location",
-            "character": char,
-            "location": from_loc
-        })
+        exit_tag = Tag("char_exits_location", character=char, location=from_loc)
+        self.current_event.tags.append(exit_tag)
         
     def add_char_enter(self, to_loc=None, char=None):
         if to_loc is None:
@@ -52,11 +53,8 @@ class Wizahd:
                 raise ValueError("No char specified but not following any char either")
             char = self._following
         
-        self._events[_self._cursor]['tags'].append({
-            "type": "char_enters_location",
-            "character": char,
-            "location": to_loc
-        })
+        enter_tag = Tag("char_enters_location", character=char, location=from_loc)
+        self.current_event.tags.append(exit_tag)
         
     def get_last_event(self, location=None, timeline=None, univ=None) -> Tuple[Dict, Dict]:
         """
@@ -75,12 +73,12 @@ class Wizahd:
         found_event = None
         found_locinfo = None
         for evt in reversed(self._events):
-            for univ in evt['universes']:
-                if univ['name'] == univ:
-                    for tl in univ['timelines']:
-                        if tl['path'] == timeline:
-                            for loc in tl['locations']:
-                                if loc['path'] == location:
+            for univ in evt.universes:
+                if univ.name == univ:
+                    for tl in univ.timelines:
+                        if tl.path == timeline:
+                            for loc in tl.locations:
+                                if loc.path == location:
                                     found_event = evt
                                     found_locinfo = loc
                                     break
@@ -113,15 +111,15 @@ class Wizahd:
         
         
         self._location = new_location
-        self._events[_self._cursor]['universes'][0]['timelines'][0]['locations'][0]['path'] = new_location
+        self.current_event.universes[0].timelines[0].locations[0].path = new_location
         
         if new_timeline is not None:
             self._timeline = new_timeline
-            self._events[_self._cursor]['universes'][0]['timelines'][0]['path'] = new_timeline
+            self.current_event.universes[0].timelines[0].path = new_timeline
             
         if new_universe is not None:
             self._universe = new_universe
-            self._events[_self._cursor]['universes'][0]['name'] = new_universe
+            self.current_event.universes[0].name = new_universe
         
     def next(self):
         self.goto(self._cursor + 1)
@@ -137,15 +135,15 @@ class Wizahd:
             
         self._cursor = cursor
         
-        event = self._events[self._cursor]
+        event = self.current_event
         
-        self._work = event['portrayed_in']['work']
-        self._comic_page = event['portrayed_in']['panel']
-        self._universe = event['universes'][0]['name']
-        self._timeline = event['universes'][0]['timelines'][0]['path']
-        self._location = event['universes'][0]['timelines'][0]['locations'][0]['path']
-        self._items = event['universes'][0]['timelines'][0]['locations'][0]['items']
-        self._chars = event['universes'][0]['timelines'][0]['locations'][0]['characters']
+        self._work = event.portrayed_in.work
+        self._comic_page = event.portrayed_in.panel
+        self._universe = event.universes[0].name
+        self._timeline = event.universes[0].timelines[0].path
+        self._location = event.universes[0].timelines[0].locations[0].path
+        self._items = event.universes[0].timelines[0].locations[0].items
+        self._chars = event.universes[0].timelines[0].locations[0].characters
         
     def advance_narrative(self, to_panel=0):
         if self._comic_page > to_panel:
@@ -159,44 +157,20 @@ class Wizahd:
             self._narrative_link = "immediate"
     
         self._cursor = len(self._events)
-        self._events.append({
-            'id': str(uuid.uuid4()),
-            'name': "",
-            'description': "",
-            'portrayed_in': {
-                "type": "narration",
-                "work": self._work,
-                "panel": self._comic_page,
-                "paragraph": 0,
-                "sentence": 0
-            },
-            'citations': [],
-            'tags': [],
-            'constraints': [
-                {
-                    "type": "narrative_" + self._narrative_link,
-                    "ref_event": self._events[self._cursor - 1] if self._cursor >= 1 else None,
-                    "is_after": True
-                }
-            ],
-            'universes': [
-                {
-                    'name': self._universe,
-                    'timelines': [
-                        {
-                            'path': self._timeline,
-                            'locations': [
-                                {
-                                    'path': self._location,
-                                    "characters": list(self._chars),
-                                    "items": list(self._items)
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ]
-        })
+        
+        portrayal = Citation("narration", work=self._work, panel=self._comic_page)
+        last_page_id = self._events[self._cursor - 1].id if self._cursor >= 1 else None
+        last_page_link = Constraint("narrative_" + self._narrative_link, ref_event=last_page_id, is_after=True)
+        loc = Location(path=self._location, characters=self._chars, items=self._items)
+        tl = Timeline(path=self._timeline, locations=[new_loc,])
+        univ = Universe(path=self._universe, timelines=[tl,])
+        
+        new_event = Event(portrayed_in=portrayal, constraints=[last_page_link,], universes=[univ,])
+        self._events.append(new_event)
+        
+    @property
+    def current_event(self) -> Event:
+        return self._events[self._cursor]
         
     @property
     def following(self) -> str:
@@ -208,23 +182,23 @@ class Wizahd:
         
     @property
     def id(self) -> str:
-        return self._events[self._cursor]['id']
+        return self.current_event.id
         
     @property
     def name(self) -> str:
-        return self._events[self._cursor]['name']
+        return self.current_event.name
         
     @name.setter
     def name(self, value: str):
-        self._events[self._cursor]['name'] = value
+        self.current_event.name = value
         
     @property
     def description(self) -> str:
-        return self._events[self._cursor]['description']
+        return self.current_event.description
         
     @description.setter
     def description(self, value: str):
-        self._events[self._cursor]['description'] = value
+        self.current_event.description = value
         
     @property
     def work(self) -> str:
@@ -233,7 +207,7 @@ class Wizahd:
     @work.setter
     def work(self, value: str):
         self._work = value
-        self._events[self._cursor]['portrayed_in']['work'] = value
+        self.current_event.portrayed_in.work = value
         
     @property
     def universe(self) -> str:
@@ -242,7 +216,7 @@ class Wizahd:
     @universe.setter
     def universe(self, value: str):
         self._universe = value
-        self._events[self._cursor]['universes'][0]['name'] = value
+        self.current_event.universes[0].name = value
         
     @property
     def timeline(self) -> str:
@@ -251,7 +225,7 @@ class Wizahd:
     @timeline.setter
     def timeline(self, value: str):
         self._timeline = value
-        self._events[self._cursor]['universes'][0]['timelines'][0]['path'] = value
+        self.current_event.universes[0].timelines[0].path = value
         
     @property
     def location(self) -> str:
@@ -260,7 +234,7 @@ class Wizahd:
     @location.setter
     def location(self, value: str):
         self._location = value
-        self._events[self._cursor]['universes'][0]['locations'][0]['path'] = value
+        self.current_event.universes[0].timelines[0].locations[0].path = value
         
     @property
     def comic_page(self) -> int:
@@ -269,7 +243,7 @@ class Wizahd:
     @comic_page.setter
     def comic_page(self, value: int):
         self._comic_page = value
-        self._events[self._cursor]['portrayed_in']['panel'] = value
+        self.current_event.portrayed_in.panel = value
     
     @property
     def items(self) -> list[str]:
