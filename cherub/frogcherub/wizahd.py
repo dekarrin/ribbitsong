@@ -1,4 +1,4 @@
-from .events import Event, Tag, Citation, Constraint, Universe, Timeline, Location
+from .events import Event, Tag, Citation, Constraint, Universe, Timeline, Location, ParadoxAddress
 
 from typing import List, Optional
 
@@ -19,21 +19,57 @@ class Wizahd:
         self._narrative_link = "causal"
         self._following = None
 
-        self._convo_participants: Dict[]
+        self._convo_participants: Dict[]  # TODO: make sure this is filled properly on event swap
         
         # TODO: default the above to 'last event'
         
-    def mc_have_convo(
+    def mc_start_convo(
         self,
         other_char: str,
-        other_char_loc: Optional[None] = None,
+        other_char_addr: Optional[ParadoxAddress] = None,
         to_panel=0
     ):
         if self._following is None:
             raise ValueError("Not following any char yet")
             
-        if 'convo' not in self.current_event.meta:
-            self.current_event.meta.add('convo')
+        self.advance_narrative(to_panel)
+        self.current_event.portrayed_in = Citation('dialog', work=self._work, panel=self._comic_page)
+        self.current_event.meta.add('convo')
+        address = self.current_event.address_of(self._following)
+        if address is None:
+            raise ValueError("Followed char {!r} not present in current event. This should never happen.".format(self._following))
+        self.mc_add_convo_participant(self._following, address=address)
+        
+        if other_char_addr is None:
+            other_char_addr = address
+        if other_char_addr.location == "":
+            other_char_addr.location = self._location
+        if other_char_addr.timeline == "":
+            other_char_addr.timeline = self._timeline
+        if other_char_addr.universe == "":
+            other_char_addr.universe = self._universe
+            
+        self.mc_add_convo_participant(other_char, other_char_addr)
+            
+    def mc_add_convo_participant(self, char: str, address: ParadoxAddress):
+        if char not in self._convo_participants:
+            self._convo_participants[char] = address
+        
+        loc = self.current_event.get_location(address)
+        if loc is None:
+            loc = Location(path=address.location)
+            tl = self.current_event.get_timeline(address)
+            if tl is None:
+                tl = Timeline(path=address.timeline)
+                univ = self.current_event.get_event(address.universe)
+                if univ is None:
+                    univ = Universe(name=address.universe)
+                    self.current_event.universes.append(univ)
+                univ.timelines.append(tl)
+            tl.locations.append(loc)
+        
+        if char not in loc.characters:
+            loc.characters.append(char)
         
     def mc_go_into_location(self, new_loc: str, to_panel=0):
         if self._following is None:

@@ -2,6 +2,53 @@ import uuid
 from typing import Optional, Dict, List, Set
 
 
+class ParadoxAddress:
+    """
+    The path within paradox space-time of someone or something. Includes the universe,
+    the timeline, and the location.
+    
+    If coming as a result of a search operation, the indexes of each within their respective
+    collection list is given as well. For instance, if a char was found in the third universe
+    in an Event, the universe_index would be 2. And if they were found in the second timeline
+    within that universe, the timeline_index would be 1, etc.
+    
+    For cases where indices are not provided, they all default to -1.
+    """
+    
+    def __init__(self, **kwargs):
+        self.universe = str(kwargs.get('universe', ''))
+        self.timeline = str(kwargs.get('timeline', ''))
+        self.location = str(kwargs.get('location', ''))
+        self.universe_index = int(kwargs.get('universe_index', -1))
+        self.timeline_index = int(kwargs.get('timeline_index', -1))
+        self.location_index = int(kwargs.get('location_index', -1))
+        
+    def copy(self) -> 'ParadoxAddress':
+        return ParadoxAddress(
+            universe=self.universe,
+            timeline=self.timeline,
+            location=self.location,
+            universe_index=self.universe_index,
+            timeline_index=self.timeline_index,
+            location_index=self.location_index
+        )
+        
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, ParadoxAddress):
+            return False
+            
+        self_tuple = (self.universe, self.timeline, self.location, self.universe_index, self.timeline_index, self.location_index)
+        other_tuple = (other.universe, other.timeline, other.location, other.universe_index, other.timeline_index, other.location_index)
+        return self_tuple == other_tuple
+        
+    def __hash__(self) -> int:
+        return hash((self.universe, self.timeline, self.location, self.universe_index, self.timeline_index, self.location_index))
+        
+    def __str__(self) -> str:
+        fmt = "<{:s}({:d}):{:s}({:d}):{:s}({:d})>"
+        return fmt.format(self.universe, self.universe_index, self.timeline, self.timeline_index, self.location, self.location_index)
+
+
 class Citation:
     types = ['dialog', 'narration', 'media', 'commentary']
 
@@ -1172,6 +1219,15 @@ class Timeline:
 
     def copy(self) -> 'Timeline':
         return Timeline(path=self.path, locations=self.locations)
+        
+    def get_location(self, location: str) -> Optional[Location]:
+        """
+        Get a Location in this Timeline by name (path).
+        """
+        for loc in self.locations:
+            if loc.path == location:
+                return loc
+        return None
 
     def __eq__(self, other) -> bool:
         if not isinstance(other, Timeline):
@@ -1218,6 +1274,15 @@ class Universe:
 
     def copy(self) -> 'Universe':
         return Universe(name=self.name, timelines=self.timelines)
+        
+    def get_timeline(self, timeline: str) -> Optional[Timeline]:
+        """
+        Get a Timeline in this universe by name (path).
+        """
+        for tl in self.timelines:
+            if tl.path == timeline:
+                return tl
+        return None
 
     def __eq__(self, other) -> bool:
         if not isinstance(other, Universe):
@@ -1374,6 +1439,61 @@ class Event:
         
         end_location = Location(path=target_loc.path, items=list(end_items), characters=list(end_chars))
         return end_location
+        
+    def address_of(self, item_or_char: str) -> Optional[ParadoxAddress]:
+        """
+        Find the location of the given item
+        """
+        
+        address = None
+        for u_idx, u in enumerate(self.universes):
+            for tl_idx, tl in enumerate(u.timelines):
+                for loc_idx, loc in enumerate(tl.locations):
+                    if item_or_char in loc.characters or item_or_char in loc.items:
+                        address = ParadoxAddress(location=loc.path, timeline=tl.path, universe=u.name)
+                        address.location_index = loc_idx
+                        address.timeline_index = tl_idx
+                        address.universe_index = u_idx
+                        break
+                if address is not None:
+                    break
+            if address is not None:
+                break
+                
+        return address
+        
+    def get_universe(self, address: ParadoxAddress) -> Optional[Universe]:
+        """
+        Get a Universe by name. Return None if not found.
+        
+        :param address: Must contain the universe to get.
+        """
+        for u in self.universes:
+            if u.name == address.universe:
+                return u
+        return None
+        
+    def get_timeline(self, address: ParadoxAddress) -> Optional[Timeline]:
+        """
+        Get a Timeline by address. Return None if not found.
+        
+        :param address: Must contain the timeline to get and the universe it is located in.
+        """
+        univ = self.get_universe(address.universe)
+        if univ is None:
+            return None
+        return univ.get_location(address.location)
+        
+    def get_location(self, address: ParadoxAddress) -> Optional[Location]:
+        """
+        Get a Location by address. Return None if not found.
+        
+        :param address: Must contain universe, timeline, and location names.
+        """
+        tl = self.get_timeline(address)
+        if tl is None:
+            return None
+        return tl.get_location(address.location)
 
     def copy(self) -> 'Event':
         return Event.from_dict(self.to_dict())
