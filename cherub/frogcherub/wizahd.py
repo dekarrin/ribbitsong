@@ -19,7 +19,7 @@ class Wizahd:
         self._narrative_link = "causal"
         self._following = None
 
-        self._convo_participants: Dict[]  # TODO: make sure this is filled properly on event swap
+        self._convo_participants = dict()  # TODO: make sure this is filled properly on event swap
         
         # TODO: default the above to 'last event'
         
@@ -50,8 +50,35 @@ class Wizahd:
             other_char_addr.universe = self._universe
             
         self.mc_add_convo_participant(other_char, other_char_addr)
+
+    def mc_continue_convo(self, to_panel=0):
+        if self._following is None:
+            raise ValueError("Not following any char yet")
+
+        if "convo" not in self.current_event.meta:
+            raise ValueError("Not yet in convo")
+
+        self.advance_narrative(to_panel)
+        self.current_event.portrayed_in = Citation('dialog', work=self._work, panel=self._comic_page)
+        self.current_event.meta.add('convo')
+
+        for participant in self._convo_participants:
+            addr = self._convo_participants[participant]
+            self.mc_add_convo_participant(participant, addr)
+
+    def mc_end_convo(self, to_panel=0):
+        if self._following is None:
+            raise ValueError("Not following any char yet")
+
+        if "convo" not in self.current_event.meta:
+            raise ValueError("Not yet in convo")
+
+        self.advance_narrative(to_panel)
             
     def mc_add_convo_participant(self, char: str, address: ParadoxAddress):
+        if "convo" not in self.current_event.meta:
+            raise ValueError("Can't add a participant, not yet in convo")
+
         if char not in self._convo_participants:
             self._convo_participants[char] = address
         
@@ -61,7 +88,7 @@ class Wizahd:
             tl = self.current_event.get_timeline(address)
             if tl is None:
                 tl = Timeline(path=address.timeline)
-                univ = self.current_event.get_event(address.universe)
+                univ = self.current_event.get_universe(address.universe)
                 if univ is None:
                     univ = Universe(name=address.universe)
                     self.current_event.universes.append(univ)
