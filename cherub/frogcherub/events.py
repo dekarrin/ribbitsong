@@ -1,5 +1,5 @@
 import uuid
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Set
 
 
 class Citation:
@@ -1208,7 +1208,7 @@ class Universe:
 
     def __init__(self, **kwargs):
         self.name = kwargs.get('name', "")
-        self.timelines: List[Location] = list()
+        self.timelines: List[Timeline] = list()
 
         tls = list(kwargs.get("timelines", list()))
         for tl in tls:
@@ -1257,6 +1257,7 @@ class Event:
         self.constraints: List[Constraint] = list()
         self.tags: List[Tag] = list()
         self.universes: List[Universe] = list()
+        self.meta: Set[str] = set(kwargs.get('meta', list()))
 
         portrayed_in = kwargs.get('portrayed_in', self.portrayed_in)
         if isinstance(portrayed_in, dict):
@@ -1289,7 +1290,7 @@ class Event:
             
     def scene_at_end(
         self,
-        location: Optional[str] = None
+        location: Optional[str] = None,
         timeline: Optional[str] = None,
         universe: Optional[str] = None,
     ) -> Location:
@@ -1318,7 +1319,7 @@ class Event:
         tl_idx = 0
         if timeline is not None:
             found = False
-            for idx, tl in enumerate(target_univ):
+            for idx, tl in enumerate(target_univ.timelines):
                 if tl.path == timeline:
                     tl_idx = idx
                     found = True
@@ -1330,7 +1331,7 @@ class Event:
         loc_idx = 0
         if location is not None:
             found = False
-            for idx, loc in enumerate(target_tl):
+            for idx, loc in enumerate(target_tl.locations):
                 if loc.path == location:
                     loc_idx = idx
                     found = True

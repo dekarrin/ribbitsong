@@ -1,8 +1,7 @@
-import uuid
-
 from .events import Event, Tag, Citation, Constraint, Universe, Timeline, Location
 
-from typing import Tuple, Dict, List
+from typing import List, Optional
+
 
 class Wizahd:
     def __init__(self, events: List[Event]):
@@ -19,6 +18,8 @@ class Wizahd:
         self._work = "homestuck"
         self._narrative_link = "causal"
         self._following = None
+
+        self._convo_participants: Dict[]
         
         # TODO: default the above to 'last event'
         
@@ -31,7 +32,8 @@ class Wizahd:
         if self._following is None:
             raise ValueError("Not following any char yet")
             
-        
+        if 'convo' not in self.current_event.meta:
+            self.current_event.meta.add('convo')
         
     def mc_go_into_location(self, new_loc: str, to_panel=0):
         if self._following is None:
@@ -40,7 +42,7 @@ class Wizahd:
         self.advance_narrative(to_panel)
         self.add_char_exit()
         self.advance_narrative(to_panel)
-        self.scene_change(new_location)
+        self.scene_change(new_loc)
         self.add_char_enter()
         
     def add_char_exit(self, from_loc=None, char=None):
@@ -64,14 +66,14 @@ class Wizahd:
                 raise ValueError("No char specified but not following any char either")
             char = self._following
         
-        enter_tag = Tag("char_enters_location", character=char, location=from_loc)
-        self.current_event.tags.append(exit_tag)
+        enter_tag = Tag("char_enters_location", character=char, location=to_loc)
+        self.current_event.tags.append(enter_tag)
         
-    def get_last_event(self, location=None, timeline=None, univ=None) -> Event
+    def get_last_event(self, location=None, timeline=None, univ=None) -> Event:
         """
-        Get the last entered event that occured at the given locality in paradox space.
+        Get the last entered event that occurred at the given locality in paradox space.
         
-        Return the event that occured there.
+        :return: The Event that occurred there.
         """
         if location is None:
             location = self._location
@@ -82,9 +84,9 @@ class Wizahd:
             
         found_event = None
         for evt in reversed(self._events):
-            for univ in evt.universes:
-                if univ.name == univ:
-                    for tl in univ.timelines:
+            for u in evt.universes:
+                if u.name == univ:
+                    for tl in u.timelines:
                         if tl.path == timeline:
                             for loc in tl.locations:
                                 if loc.path == location:
@@ -104,7 +106,10 @@ class Wizahd:
         Completely wipe out the current event's scene and replace it with a new one, with default
         items and characters in it taken from the end of the last event that occured in this
         locality.
-        
+
+        :param new_location: The location to change to.
+        :param new_timeline: The timeline to change to, if not given the current one is used.
+        :param new_universe: The universe to change to, if not given the current one is used.
         :param preserve: If set to true, the current scene is saved and swapped to the next position
         in the Event instead of being replaced with the new one.
         """
@@ -119,7 +124,7 @@ class Wizahd:
         else:
             dest_universe = self._universe
             
-        if self._universe == dest_universe and self._timeline == dest_timeline and self._location = new_location:
+        if self._universe == dest_universe and self._timeline == dest_timeline and self._location == new_location:
             # we are already here. no need to change anyfin
             return
             
@@ -141,7 +146,7 @@ class Wizahd:
         if last_event is not None:
             loc_at_end = last_event.scene_at_end(new_location, dest_timeline, dest_universe)
             self._items = loc_at_end.items
-            self._chars = loc_at_end.chars
+            self._chars = loc_at_end.characters
         
         self._location = new_location
         self.current_event.universes[0].timelines[0].locations[0].path = new_location
@@ -182,7 +187,7 @@ class Wizahd:
         if self._comic_page > to_panel:
             raise ValueError("advance needs to happen after the current for a narrative")
             
-        if to_panel > 0 and self._comic_page + 1 != to_panel:
+        if 0 < to_panel != self._comic_page + 1:
             self._comic_page = to_panel
             self._narrative_link = "causal"
         else:
@@ -195,10 +200,10 @@ class Wizahd:
         last_page_id = self._events[self._cursor - 1].id if self._cursor >= 1 else None
         last_page_link = Constraint("narrative_" + self._narrative_link, ref_event=last_page_id, is_after=True)
         loc = Location(path=self._location, characters=self._chars, items=self._items)
-        tl = Timeline(path=self._timeline, locations=[new_loc,])
-        univ = Universe(path=self._universe, timelines=[tl,])
+        tl = Timeline(path=self._timeline, locations=[loc])
+        univ = Universe(path=self._universe, timelines=[tl])
         
-        new_event = Event(portrayed_in=portrayal, constraints=[last_page_link,], universes=[univ,])
+        new_event = Event(portrayed_in=portrayal, constraints=[last_page_link], universes=[univ])
         self._events.append(new_event)
         
     @property
@@ -279,9 +284,9 @@ class Wizahd:
         self.current_event.portrayed_in.panel = value
     
     @property
-    def items(self) -> list[str]:
+    def items(self) -> List[str]:
         return list(self._items)
         
     @property
-    def characters(self) -> list[str]:
+    def characters(self) -> List[str]:
         return list(self._chars)
