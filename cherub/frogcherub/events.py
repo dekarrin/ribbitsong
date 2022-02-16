@@ -588,75 +588,108 @@ class Tag:
             raise ValueError("invalid tag type; must be one of: {!r}".format(Tag.types))
             
         self._type = type
-        self._recipient = ""
+        self._actor = ""
+        self._target = ""
+        self._recipient = ""  # TODO: merge with target
         self._appearance = ""
         self._property = ""
         self._value = ""
-        self._character = ""  # TODO: merge with 'actor'
         self._item = ""
         self._consumed = False
-        self._giver = ""  # TODO: merge with 'actor'
-        self._receiver = ""  # TODO: merge with recipient
+        self._receiver = ""  # TODO: merge with target
         self._port_in_event = ""  # TODO: merge with 'opposite_port_event'
         self._port_out_event = ""  # TODO: merge with 'opposite_port_event'
         self._location = ""
         self._source_items = []
         self._result_items = []
-        self._by = ""  # TODO: merge with 'actor'
         self._results_in_sylladex = []
         
         if self.type == 'appearance_changed':
-            self._recipient = kwargs.get('recipient', self._recipient)
+            if 'recipient' in kwargs:
+                self._target = str(kwargs.get('recipient'))
+            self._target = kwargs.get('target', self._target)
             self._appearance = kwargs.get('appearance', self._appearance)
         elif self.type == "state_changed":
-            self._recipient = kwargs.get('recipient', self._recipient)
+            if 'recipient' in kwargs:
+                self._target = str(kwargs.get('recipient'))
+            self._target = kwargs.get('target', self._target)
             self._property = kwargs.get('property', self._property)
             self._value = kwargs.get('value', self._value)
         elif self.type == "char_obtains_item":
-            self._character = kwargs.get('character', self._character)
+            if 'character' in kwargs:
+                self._actor = str(kwargs.get('character'))
+            self._actor = str(kwargs.get('actor', self._actor))
             self._item = kwargs.get('item', self._item)
         elif self.type == "char_drops_item":
-            self._character = kwargs.get('character', self._character)
+            if 'character' in kwargs:
+                self._actor = str(kwargs.get('character'))
+            self._actor = str(kwargs.get('actor', self._actor))
             self._item = kwargs.get('item', self._item)
         elif self.type == "char_uses_item":
-            self._character = kwargs.get('character', self._character)
+            if 'character' in kwargs:
+                self._actor = str(kwargs.get('character'))
+            self._actor = str(kwargs.get('actor', self._actor))
             self._item = kwargs.get('item', self._item)
             self._consumed = bool(kwargs.get('consumed', self._consumed))
         elif self.type == "char_gives_item_to_char":
-            self._giver = kwargs.get('giver', self._giver)
+            if 'giver' in kwargs:
+                self._actor = str(kwargs.get('giver'))
+            self._actor = str(kwargs.get('actor', self._actor))
             self._receiver = kwargs.get('receiver', self._receiver)
             self._item = kwargs.get('item', self._item)
         elif self.type == "char_dies":
-            self._character = kwargs.get('character', self._character)
+            if 'character' in kwargs:
+                self._actor = str(kwargs.get('character'))
+            self._actor = str(kwargs.get('actor', self._actor))
         elif self.type == "char_born":
-            self._character = kwargs.get('character', self._character)
+            if 'character' in kwargs:
+                self._actor = str(kwargs.get('character'))
+            self._actor = str(kwargs.get('actor', self._actor))
         elif self.type == "char_resurrected":
-            self._character = kwargs.get('character', self._character)
+            if 'character' in kwargs:
+                self._actor = str(kwargs.get('character'))
+            self._actor = str(kwargs.get('actor', self._actor))
         elif self.type == "char_ports_in":
-            self._character = kwargs.get('character', self._character)
+            if 'character' in kwargs:
+                self._actor = str(kwargs.get('character'))
+            self._actor = str(kwargs.get('actor', self._actor))
             self._port_out_event = kwargs.get('port_out_event', self._port_out_event)
         elif self.type == "char_ports_out":
-            self._character = kwargs.get('character', self._character)
+            if 'character' in kwargs:
+                self._actor = str(kwargs.get('character'))
+            self._actor = str(kwargs.get('actor', self._actor))
             self._port_in_event = kwargs.get('port_in_event', self._port_in_event)
         elif self.type == "char_enters_location":
-            self._character = kwargs.get('character', self._character)
+            if 'character' in kwargs:
+                self._actor = str(kwargs.get('character'))
+            self._actor = str(kwargs.get('actor', self._actor))
             self._location = kwargs.get('location', self._location)
         elif self.type == "char_exits_location":
-            self._character = kwargs.get('character', self._character)
+            if 'character' in kwargs:
+                self._actor = str(kwargs.get('character'))
+            self._actor = str(kwargs.get('actor', self._actor))
             self._location = kwargs.get('location', self._location)
         elif self.type == "char_falls_asleep":
-            self._character = kwargs.get('character', self._character)
+            if 'character' in kwargs:
+                self._actor = str(kwargs.get('character'))
+            self._actor = str(kwargs.get('actor', self._actor))
         elif self.type == "char_wakes_up":
-            self._character = kwargs.get('character', self._character)
+            if 'character' in kwargs:
+                self._actor = str(kwargs.get('character'))
+            self._actor = str(kwargs.get('actor', self._actor))
         elif self.type == "item_merged":
+            if 'by' in kwargs:
+                self._actor = str(kwargs.get('by'))
+            self._actor = str(kwargs.get('actor', self._actor))
             self._source_items = list(kwargs.get('source_items', self._source_items))
             self._result_items = list(kwargs.get('result_items', self._result_items))
-            self._by = kwargs.get('by', self._by)
             self._results_in_sylladex = list(kwargs.get('results_in_sylladex', self._results_in_sylladex))
         elif self.type == "item_split":
+            if 'by' in kwargs:
+                self._actor = str(kwargs.get('by'))
+            self._actor = str(kwargs.get('actor', self._actor))
             self._source_items = list(kwargs.get('source_items', self._source_items))
             self._result_items = list(kwargs.get('result_items', self._result_items))
-            self._by = kwargs.get('by', self._by)
             self._results_in_sylladex = list(kwargs.get('results_in_sylladex', self._results_in_sylladex))
         else:
             raise ValueError("should never happen")
@@ -686,63 +719,63 @@ class Tag:
             if self.value != other.value:
                 return False
         elif self.type == "char_obtains_item":
-            if self.character != other.character:
+            if self.actor != other.actor:
                 return False
             if self.item != other.item:
                 return False
         elif self.type == "char_drops_item":
-            if self.character != other.character:
+            if self.actor != other.actor:
                 return False
             if self.item != other.item:
                 return False
         elif self.type == "char_uses_item":
-            if self.character != other.character:
+            if self.actor != other.actor:
                 return False
             if self.item != other.item:
                 return False
             if self.consumed != other.consumed:
                 return False
         elif self.type == "char_gives_item_to_char":
-            if self.giver != other.giver:
+            if self.actor != other.actor:
                 return False
             if self.receiver != other.receiver:
                 return False
             if self.item != other.item:
                 return False
         elif self.type == "char_dies":
-            if self.character != other.character:
+            if self.actor != other.actor:
                 return False
         elif self.type == "char_born":
-            if self.character != other.character:
+            if self.actor != other.actor:
                 return False
         elif self.type == "char_resurrected":
-            if self.character != other.character:
+            if self.actor != other.actor:
                 return False
         elif self.type == "char_ports_in":
-            if self.character != other.character:
+            if self.actor != other.actor:
                 return False
             if self.port_out_event != other.port_out_event:
                 return False
         elif self.type == "char_ports_out":
-            if self.character != other.character:
+            if self.actor != other.actor:
                 return False
             if self.port_in_event != other.port_in_event:
                 return False
         elif self.type == "char_enters_location":
-            if self.character != other.character:
+            if self.actor != other.actor:
                 return False
             if self.location != other.location:
                 return False
         elif self.type == "char_exits_location":
-            if self.character != other.character:
+            if self.actor != other.actor:
                 return False
             if self.location != other.location:
                 return False
         elif self.type == "char_falls_asleep":
-            if self.character != other.character:
+            if self.actor != other.actor:
                 return False
         elif self.type == "char_wakes_up":
-            if self.character != other.character:
+            if self.actor != other.actor:
                 return False
         elif self.type == "item_merged":
             if self.source_items != other.source_items:
@@ -751,7 +784,7 @@ class Tag:
                 return False
             if self.results_in_sylladex != other.results_in_sylladex:
                 return False
-            if self.by != other.by:
+            if self.actor != other.actor:
                 return False
         elif self.type == "item_split":
             if self.source_items != other.source_items:
@@ -760,7 +793,7 @@ class Tag:
                 return False
             if self.results_in_sylladex != other.results_in_sylladex:
                 return False
-            if self.by != other.by:
+            if self.actor != other.actor:
                 return False
         else:
             raise ValueError("should never happen")
@@ -773,35 +806,35 @@ class Tag:
         elif self.type == "state_changed":
             return hash((self.type, self.recipient, self.property_name, self.value))
         elif self.type == "char_obtains_item":
-            return hash((self.type, self.character, self.item))
+            return hash((self.type, self.actor, self.item))
         elif self.type == "char_drops_item":
-            return hash((self.type, self.character, self.item))
+            return hash((self.type, self.actor, self.item))
         elif self.type == "char_uses_item":
-            return hash((self.type, self.character, self.item, self.consumed))
+            return hash((self.type, self.actor, self.item, self.consumed))
         elif self.type == "char_gives_item_to_char":
-            return hash((self.type, self.giver, self.receiver, self.item))
+            return hash((self.type, self.actor, self.receiver, self.item))
         elif self.type == "char_dies":
-            return hash((self.type, self.character))
+            return hash((self.type, self.actor))
         elif self.type == "char_born":
-            return hash((self.type, self.character))
+            return hash((self.type, self.actor))
         elif self.type == "char_resurrected":
-            return hash((self.type, self.character))
+            return hash((self.type, self.actor))
         elif self.type == "char_ports_in":
-            return hash((self.type, self.character, self.port_out_event))
+            return hash((self.type, self.actor, self.port_out_event))
         elif self.type == "char_ports_out":
-            return hash((self.type, self.character, self.port_in_event))
+            return hash((self.type, self.actor, self.port_in_event))
         elif self.type == "char_enters_location":
-            return hash((self.type, self.character, self.location))
+            return hash((self.type, self.actor, self.location))
         elif self.type == "char_exits_location":
-            return hash((self.type, self.character, self.location))
+            return hash((self.type, self.actor, self.location))
         elif self.type == "char_falls_asleep":
-            return hash((self.type, self.character))
+            return hash((self.type, self.actor))
         elif self.type == "char_wakes_up":
-            return hash((self.type, self.character))
+            return hash((self.type, self.actor))
         elif self.type == "item_merged":
-            return hash((self.type, self.source_items, self.result_items, self.results_in_sylladex, self.by))
+            return hash((self.type, self.source_items, self.result_items, self.results_in_sylladex, self.actor))
         elif self.type == "item_split":
-            return hash((self.type, self.source_items, self.result_items, self.results_in_sylladex, self.by))
+            return hash((self.type, self.source_items, self.result_items, self.results_in_sylladex, self.actor))
         else:
             raise ValueError("should never happen")
             
@@ -812,53 +845,53 @@ class Tag:
         elif self.type == "state_changed":
             s += "{:s}.{:s} = {!r}".format(self.recipient, self.property_name, self.value)
         elif self.type == "char_obtains_item":
-            s += "{:s} GETS {:s}".format(self.character, self.item)
+            s += "{:s} GETS {:s}".format(self.actor, self.item)
         elif self.type == "char_drops_item":
-            s += "{:s} DROPS {:s}".format(self.character, self.item)
+            s += "{:s} DROPS {:s}".format(self.actor, self.item)
         elif self.type == "char_uses_item":
-            s += "{:s} USES {:s}{:s}".format(self.character, self.item, " UP" if self.consumed else "")
+            s += "{:s} USES {:s}{:s}".format(self.actor, self.item, " UP" if self.consumed else "")
         elif self.type == "char_gives_item_to_char":
-            s += "{:s} GIVES {:s} TO {:s}".format(self.giver, self.item, self.receiver)
+            s += "{:s} GIVES {:s} TO {:s}".format(self.actor, self.item, self.receiver)
         elif self.type == "char_dies":
-            s += "{:s} DIES".format(self.character)
+            s += "{:s} DIES".format(self.actor)
         elif self.type == "char_born":
-            s += "{:s} IS BORN".format(self.character)
+            s += "{:s} IS BORN".format(self.actor)
         elif self.type == "char_resurrected":
-            s += "{:s} IS RESURRECTED".format(self.character)
+            s += "{:s} IS RESURRECTED".format(self.actor)
         elif self.type == "char_ports_in":
             port_mark = ""
             if self.port_out_event is not None and self.port_out_event != "":
                 port_mark = "FROM {:s}".format(self.port_out_event)
-            s += "{:s} PORTS IN{:s}".format(self.character, port_mark)
+            s += "{:s} PORTS IN{:s}".format(self.actor, port_mark)
         elif self.type == "char_ports_out":
             port_mark = ""
             if self.port_in_event is not None and self.port_in_event != "":
                 port_mark = "TO {:s}".format(self.port_in_event)
-            s += "{:s} PORTS OUT{:s}".format(self.character, port_mark)
+            s += "{:s} PORTS OUT{:s}".format(self.actor, port_mark)
         elif self.type == "char_enters_location":
             loc_mark = " " + self.location if self.location is not None and self.location != "" else ""
-            s += "{:s} ENTERS{:s}".format(self.character, loc_mark)
+            s += "{:s} ENTERS{:s}".format(self.actor, loc_mark)
         elif self.type == "char_exits_location":
             loc_mark = " " + self.location if self.location is not None and self.location != "" else ""
-            s += "{:s} EXITS{:s}".format(self.character, loc_mark)
+            s += "{:s} EXITS{:s}".format(self.actor, loc_mark)
         elif self.type == "char_falls_asleep":
-            s += "{:s} FALLS ASLEEP".format(self.character)
+            s += "{:s} FALLS ASLEEP".format(self.actor)
         elif self.type == "char_wakes_up":
-            s += "{:s} WAKES UP".format(self.character)
+            s += "{:s} WAKES UP".format(self.actor)
         elif self.type == "item_merged":
             source_mark = '[' + ','.join(self.source_items) + ']'
             results_mark = '[' + ','.join(self.result_items) + ']'
             sylladex_mark = '[' + ','.join(self.results_in_sylladex) + ']'
 
             fmt = "MERGE {:s} -> {:s} BY {!r}, SENDING {:s} TO INVENTORY"
-            s += fmt.format(source_mark, results_mark, self.by, sylladex_mark)
+            s += fmt.format(source_mark, results_mark, self.actor, sylladex_mark)
         elif self.type == "item_split":
             source_mark = '[' + ','.join(self.source_items) + ']'
             results_mark = '[' + ','.join(self.result_items) + ']'
             sylladex_mark = '[' + ','.join(self.results_in_sylladex) + ']'
 
             fmt = "SPLIT {:s} -> {:s} BY {!r}, SENDING {:s} TO INVENTORY"
-            s += fmt.format(source_mark, results_mark, self.by, sylladex_mark)
+            s += fmt.format(source_mark, results_mark, self.actor, sylladex_mark)
         else:
             raise ValueError("should never happen")
             
@@ -876,48 +909,48 @@ class Tag:
             d['property'] = self.property_name
             d['value'] = self.value
         elif self.type == "char_obtains_item":
-            d['character'] = self.character
+            d['actor'] = self.actor
             d['item'] = self.item
         elif self.type == "char_drops_item":
-            d['character'] = self.character
+            d['actor'] = self.actor
             d['item'] = self.item
         elif self.type == "char_uses_item":
-            d['character'] = self.character
+            d['actor'] = self.actor
             d['item'] = self.item
             d['consumed'] = self.consumed
         elif self.type == "char_gives_item_to_char":
-            d['giver'] = self.giver
+            d['actor'] = self.actor
             d['receiver'] = self.receiver
             d['item'] = self.item
         elif self.type == "char_dies":
-            d['character'] = self.character
+            d['actor'] = self.actor
         elif self.type == "char_born":
-            d['character'] = self.character
+            d['actor'] = self.actor
         elif self.type == "char_resurrected":
-            d['character'] = self.character
+            d['actor'] = self.actor
         elif self.type == "char_ports_in":
-            d['character'] = self.character
+            d['actor'] = self.actor
             d['port_out_event'] = self.port_out_event
         elif self.type == "char_ports_out":
-            d['character'] = self.character
+            d['actor'] = self.actor
             d['port_in_event'] = self.port_in_event
         elif self.type == "char_enters_location":
-            d['character'] = self.character
+            d['actor'] = self.actor
             d['location'] = self.location
         elif self.type == "char_exits_location":
-            d['character'] = self.character
+            d['actor'] = self.actor
             d['location'] = self.location
         elif self.type == "char_falls_asleep":
-            d['character'] = self.character
+            d['actor'] = self.actor
         elif self.type == "char_wakes_up":
-            d['character'] = self.character
+            d['actor'] = self.actor
         elif self.type == "item_merged":
-            d['by'] = self.by
+            d['actor'] = self.actor
             d['source_items'] = list(self.source_items)
             d['result_items'] = list(self.result_items)
             d['results_in_sylladex'] = list(self.results_in_sylladex)
         elif self.type == "item_split":
-            d['by'] = self.by
+            d['actor'] = self.actor
             d['source_items'] = list(self.source_items)
             d['result_items'] = list(self.result_items)
             d['results_in_sylladex'] = list(self.results_in_sylladex)
@@ -931,7 +964,7 @@ class Tag:
         return self._type
 
     @property
-    def recipient(self) -> str:
+    def target(self) -> str:
         if self.type not in ['appearance_changed', 'state_changed']:
             raise NotImplementedError("{!r}-type constraints do not have a recipient property".format(self.type))
         return self._recipient
@@ -979,7 +1012,7 @@ class Tag:
         self._value = value
 
     @property
-    def character(self) -> str:
+    def actor(self) -> str:
         if self.type not in [
             'char_obtains_item',
             'char_drops_item',
@@ -993,13 +1026,15 @@ class Tag:
             'char_enters_location',
             'char_exits_location',
             'char_falls_asleep',
-            'char_wakes_up'
+            'char_wakes_up',
+            'item_split',
+            'item_merged'
         ]:
-            raise NotImplementedError("{!r}-type constraints do not have a character property".format(self.type))
-        return self._character
+            raise NotImplementedError("{!r}-type constraints do not have an 'actor' property".format(self.type))
+        return self._actor
 
-    @character.setter
-    def character(self, value: str):
+    @actor.setter
+    def actor(self, value: str):
         if self.type not in [
             'char_obtains_item',
             'char_drops_item',
@@ -1013,10 +1048,12 @@ class Tag:
             'char_enters_location',
             'char_exits_location',
             'char_falls_asleep',
-            'char_wakes_up'
+            'char_wakes_up',
+            'item_split',
+            'item_merged'
         ]:
-            raise NotImplementedError("{!r}-type constraints do not have a character property".format(self.type))
-        self._character = value
+            raise NotImplementedError("{!r}-type constraints do not have an 'actor' property".format(self.type))
+        self._actor = value
 
     @property
     def item(self) -> str:
@@ -1041,18 +1078,6 @@ class Tag:
         if self.type != 'char_uses_item':
             raise NotImplementedError("{!r}-type constraints do not have a consumed property".format(self.type))
         self._consumed = value
-
-    @property
-    def giver(self) -> str:
-        if self.type != 'char_gives_item_to_char':
-            raise NotImplementedError("{!r}-type constraints do not have a giver property".format(self.type))
-        return self._giver
-
-    @giver.setter
-    def giver(self, value: str):
-        if self.type != 'char_gives_item_to_char':
-            raise NotImplementedError("{!r}-type constraints do not have a giver property".format(self.type))
-        self._giver = value
 
     @property
     def receiver(self) -> str:
@@ -1101,18 +1126,6 @@ class Tag:
         if self.type not in ['char_exits_location', 'char_enters_location']:
             raise NotImplementedError("{!r}-type constraints do not have a location property".format(self.type))
         self._location = value
-
-    @property
-    def by(self) -> str:
-        if self.type not in ['item_split', 'item_merged']:
-            raise NotImplementedError("{!r}-type constraints do not have a by property".format(self.type))
-        return self._by
-
-    @by.setter
-    def by(self, value: str):
-        if self.type not in ['item_split', 'item_merged']:
-            raise NotImplementedError("{!r}-type constraints do not have a by property".format(self.type))
-        self._by = value
 
     @property
     def source_items(self) -> List[str]:
@@ -1408,28 +1421,28 @@ class Event:
         end_chars = set(target_loc.characters)
         for t in self.tags:
             if t.type == "char_obtains_item":
-                if t.character in end_chars:
+                if t.actor in end_chars:
                     end_items.remove(t.item)
             elif t.type == "char_drops_item":
-                if t.character in end_chars:
+                if t.actor in end_chars:
                     end_items.add(t.item)
             elif t.type == "char_uses_item":
-                if t.character in end_chars and t.consumed:
+                if t.actor in end_chars and t.consumed:
                     end_items.remove(t.item)
             elif t.type == "char_ports_in":
-                if t.character not in end_chars:
-                    end_chars.add(t.character)
+                if t.actor not in end_chars:
+                    end_chars.add(t.actor)
             elif t.type == "char_ports_out":
-                if t.character in end_chars:
-                    end_chars.remove(t.character)
+                if t.actor in end_chars:
+                    end_chars.remove(t.actor)
             elif t.type == "char_enters_location":
-                if t.character not in end_chars:
-                    end_chars.add(t.character)
+                if t.actor not in end_chars:
+                    end_chars.add(t.actor)
             elif t.type == "char_exits_location":
-                if t.character in end_chars:
-                    end_chars.remove(t.character)
+                if t.actor in end_chars:
+                    end_chars.remove(t.actor)
             elif t.type == "item_merged" or t.type == "items_split":
-                if t.by is None or t.by in end_chars:
+                if t.actor is None or t.actor in end_chars:
                     for r in end_items:
                         if r in t.source_items:
                             end_items.remove(r)
@@ -1479,10 +1492,10 @@ class Event:
         
         :param address: Must contain the timeline to get and the universe it is located in.
         """
-        univ = self.get_universe(address.universe)
+        univ = self.get_universe(address)
         if univ is None:
             return None
-        return univ.get_location(address.location)
+        return univ.get_timeline(address.location)
         
     def get_location(self, address: ParadoxAddress) -> Optional[Location]:
         """

@@ -22,6 +22,12 @@ class Wizahd:
         self._convo_participants = dict()  # TODO: make sure this is filled properly on event swap
         
         # TODO: default the above to 'last event'
+
+    def mc_get_item(self):
+        if self._following is None:
+            raise ValueError("Not following any char yet")
+
+        self.
         
     def mc_start_convo(
         self,
@@ -109,6 +115,8 @@ class Wizahd:
         self.advance_narrative(to_panel)
         self.scene_change(new_loc)
         self.add_char_enter()
+
+    def add_char_item_interaction(self, ):
         
     def add_char_exit(self, from_loc=None, char=None):
         if from_loc is None:
