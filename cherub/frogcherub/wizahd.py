@@ -31,8 +31,9 @@ class Wizahd:
     ):
         if self._following is None:
             raise ValueError("Not following any char yet")
-            
-        self.advance_narrative(to_panel)
+
+        self._convo_participants = {}
+        self.advance_narrative(to_panel, for_dialog=True)
         self.current_event.portrayed_in = Citation('dialog', work=self._work, panel=self._comic_page)
         self.current_event.meta.add('convo')
         address = self.current_event.address_of(self._following)
@@ -58,8 +59,7 @@ class Wizahd:
         if "convo" not in self.current_event.meta:
             raise ValueError("Not yet in convo")
 
-        self.advance_narrative(to_panel)
-        self.current_event.portrayed_in = Citation('dialog', work=self._work, panel=self._comic_page)
+        self.advance_narrative(to_panel, for_dialog=True)
         self.current_event.meta.add('convo')
 
         for participant in self._convo_participants:
@@ -97,6 +97,8 @@ class Wizahd:
         
         if char not in loc.characters:
             loc.characters.append(char)
+
+        self.current_event.meta.add('convo:' + str(char))
         
     def mc_go_into_location(self, new_loc: str, to_panel=0):
         if self._following is None:
@@ -237,6 +239,8 @@ class Wizahd:
         self._cursor = cursor
         
         event = self.current_event
+
+        self._convo_participants = {}
         
         self._work = event.portrayed_in.work
         self._comic_page = event.portrayed_in.panel
@@ -245,8 +249,17 @@ class Wizahd:
         self._location = event.universes[0].timelines[0].locations[0].path
         self._items = event.universes[0].timelines[0].locations[0].items
         self._chars = event.universes[0].timelines[0].locations[0].characters
+
+        if "convo" in event.meta:
+            for m in event.meta:
+                if m.startswith("convo:"):
+                    char = m.split(":", 1)[1]
+                    char_addr = event.address_of(char)
+                    if char_addr is None:
+                        raise ValueError("char {!r} is in convo but is not included in event universes".format(char))
+                    self._convo_participants[char] = char_addr
         
-    def advance_narrative(self, to_panel=0):
+    def advance_narrative(self, to_panel=0, for_dialog=False):
         if self._comic_page > to_panel:
             raise ValueError("advance needs to happen after the current for a narrative")
             
@@ -258,8 +271,13 @@ class Wizahd:
             self._narrative_link = "immediate"
     
         self._cursor = len(self._events)
-        
-        portrayal = Citation("narration", work=self._work, panel=self._comic_page)
+
+        if for_dialog:
+            portrayal = Citation("dialog", work=self._work, panel=self._comic_page)
+        else:
+            self._convo_participants = {}
+            portrayal = Citation("narration", work=self._work, panel=self._comic_page)
+
         last_page_id = self._events[self._cursor - 1].id if self._cursor >= 1 else None
         last_page_link = Constraint("narrative_" + self._narrative_link, ref_event=last_page_id, is_after=True)
         loc = Location(path=self._location, characters=self._chars, items=self._items)
