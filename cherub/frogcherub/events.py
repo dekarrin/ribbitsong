@@ -590,15 +590,12 @@ class Tag:
         self._type = type
         self._actor = ""
         self._target = ""
-        self._recipient = ""  # TODO: merge with target
         self._appearance = ""
         self._property = ""
         self._value = ""
         self._item = ""
         self._consumed = False
-        self._receiver = ""  # TODO: merge with target
-        self._port_in_event = ""  # TODO: merge with 'opposite_port_event'
-        self._port_out_event = ""  # TODO: merge with 'opposite_port_event'
+        self._opposite_port_event = ""
         self._location = ""
         self._source_items = []
         self._result_items = []
@@ -634,8 +631,10 @@ class Tag:
         elif self.type == "char_gives_item_to_char":
             if 'giver' in kwargs:
                 self._actor = str(kwargs.get('giver'))
+            if 'receiver' in kwargs:
+                self._target = str(kwargs.get('receiver'))
             self._actor = str(kwargs.get('actor', self._actor))
-            self._receiver = kwargs.get('receiver', self._receiver)
+            self._target = str(kwargs.get('target', self._target))
             self._item = kwargs.get('item', self._item)
         elif self.type == "char_dies":
             if 'character' in kwargs:
@@ -652,13 +651,17 @@ class Tag:
         elif self.type == "char_ports_in":
             if 'character' in kwargs:
                 self._actor = str(kwargs.get('character'))
+            if 'port_out_event' in kwargs:
+                self._opposite_port_event = str(kwargs.get('port_out_event'))
             self._actor = str(kwargs.get('actor', self._actor))
-            self._port_out_event = kwargs.get('port_out_event', self._port_out_event)
+            self._opposite_port_event = str(kwargs.get('opposite_port_event', self._opposite_port_event))
         elif self.type == "char_ports_out":
             if 'character' in kwargs:
                 self._actor = str(kwargs.get('character'))
+            if 'port_in_event' in kwargs:
+                self._opposite_port_event = str(kwargs.get('port_in_event'))
             self._actor = str(kwargs.get('actor', self._actor))
-            self._port_in_event = kwargs.get('port_in_event', self._port_in_event)
+            self._opposite_port_event = kwargs.get('opposite_port_event', self._opposite_port_event)
         elif self.type == "char_enters_location":
             if 'character' in kwargs:
                 self._actor = str(kwargs.get('character'))
@@ -707,12 +710,12 @@ class Tag:
             return False
 
         if self.type == 'appearance_changed':
-            if self.recipient != other.recipient:
+            if self.target != other.target:
                 return False
             if self.appearance != other.appearance:
                 return False
         elif self.type == "state_changed":
-            if self.recipient != other.recipient:
+            if self.target != other.target:
                 return False
             if self.property_name != other.property_name:
                 return False
@@ -738,7 +741,7 @@ class Tag:
         elif self.type == "char_gives_item_to_char":
             if self.actor != other.actor:
                 return False
-            if self.receiver != other.receiver:
+            if self.target != other.target:
                 return False
             if self.item != other.item:
                 return False
@@ -754,12 +757,12 @@ class Tag:
         elif self.type == "char_ports_in":
             if self.actor != other.actor:
                 return False
-            if self.port_out_event != other.port_out_event:
+            if self.opposite_port_event != other.opposite_port_event:
                 return False
         elif self.type == "char_ports_out":
             if self.actor != other.actor:
                 return False
-            if self.port_in_event != other.port_in_event:
+            if self.opposite_port_event != other.opposite_port_event:
                 return False
         elif self.type == "char_enters_location":
             if self.actor != other.actor:
@@ -802,9 +805,9 @@ class Tag:
         
     def __hash__(self) -> int:
         if self.type == 'appearance_changed':
-            return hash((self.type, self.recipient, self.appearance))
+            return hash((self.type, self.target, self.appearance))
         elif self.type == "state_changed":
-            return hash((self.type, self.recipient, self.property_name, self.value))
+            return hash((self.type, self.target, self.property_name, self.value))
         elif self.type == "char_obtains_item":
             return hash((self.type, self.actor, self.item))
         elif self.type == "char_drops_item":
@@ -812,7 +815,7 @@ class Tag:
         elif self.type == "char_uses_item":
             return hash((self.type, self.actor, self.item, self.consumed))
         elif self.type == "char_gives_item_to_char":
-            return hash((self.type, self.actor, self.receiver, self.item))
+            return hash((self.type, self.actor, self.target, self.item))
         elif self.type == "char_dies":
             return hash((self.type, self.actor))
         elif self.type == "char_born":
@@ -820,9 +823,9 @@ class Tag:
         elif self.type == "char_resurrected":
             return hash((self.type, self.actor))
         elif self.type == "char_ports_in":
-            return hash((self.type, self.actor, self.port_out_event))
+            return hash((self.type, self.actor, self.opposite_port_event))
         elif self.type == "char_ports_out":
-            return hash((self.type, self.actor, self.port_in_event))
+            return hash((self.type, self.actor, self.opposite_port_event))
         elif self.type == "char_enters_location":
             return hash((self.type, self.actor, self.location))
         elif self.type == "char_exits_location":
@@ -841,9 +844,9 @@ class Tag:
     def __str__(self):
         s = "Tag<".format(self.type)
         if self.type == "appearance_changed":
-            s += "APPEARANCE OF {:s} -> {:s}".format(self.recipient, self.appearance)
+            s += "APPEARANCE OF {:s} -> {:s}".format(self.target, self.appearance)
         elif self.type == "state_changed":
-            s += "{:s}.{:s} = {!r}".format(self.recipient, self.property_name, self.value)
+            s += "{:s}.{:s} = {!r}".format(self.target, self.property_name, self.value)
         elif self.type == "char_obtains_item":
             s += "{:s} GETS {:s}".format(self.actor, self.item)
         elif self.type == "char_drops_item":
@@ -851,7 +854,7 @@ class Tag:
         elif self.type == "char_uses_item":
             s += "{:s} USES {:s}{:s}".format(self.actor, self.item, " UP" if self.consumed else "")
         elif self.type == "char_gives_item_to_char":
-            s += "{:s} GIVES {:s} TO {:s}".format(self.actor, self.item, self.receiver)
+            s += "{:s} GIVES {:s} TO {:s}".format(self.actor, self.item, self.target)
         elif self.type == "char_dies":
             s += "{:s} DIES".format(self.actor)
         elif self.type == "char_born":
@@ -860,13 +863,13 @@ class Tag:
             s += "{:s} IS RESURRECTED".format(self.actor)
         elif self.type == "char_ports_in":
             port_mark = ""
-            if self.port_out_event is not None and self.port_out_event != "":
-                port_mark = "FROM {:s}".format(self.port_out_event)
+            if self.opposite_port_event is not None and self.opposite_port_event != "":
+                port_mark = "FROM {:s}".format(self.opposite_port_event)
             s += "{:s} PORTS IN{:s}".format(self.actor, port_mark)
         elif self.type == "char_ports_out":
             port_mark = ""
-            if self.port_in_event is not None and self.port_in_event != "":
-                port_mark = "TO {:s}".format(self.port_in_event)
+            if self.opposite_port_event is not None and self.opposite_port_event != "":
+                port_mark = "TO {:s}".format(self.opposite_port_event)
             s += "{:s} PORTS OUT{:s}".format(self.actor, port_mark)
         elif self.type == "char_enters_location":
             loc_mark = " " + self.location if self.location is not None and self.location != "" else ""
@@ -902,10 +905,10 @@ class Tag:
         d = {'type': self.type}
 
         if self.type == 'appearance_changed':
-            d['recipient'] = self.recipient
+            d['target'] = self.target
             d['appearance'] = self.appearance
         elif self.type == "state_changed":
-            d['recipient'] = self.recipient
+            d['target'] = self.target
             d['property'] = self.property_name
             d['value'] = self.value
         elif self.type == "char_obtains_item":
@@ -920,7 +923,7 @@ class Tag:
             d['consumed'] = self.consumed
         elif self.type == "char_gives_item_to_char":
             d['actor'] = self.actor
-            d['receiver'] = self.receiver
+            d['target'] = self.target
             d['item'] = self.item
         elif self.type == "char_dies":
             d['actor'] = self.actor
@@ -930,10 +933,10 @@ class Tag:
             d['actor'] = self.actor
         elif self.type == "char_ports_in":
             d['actor'] = self.actor
-            d['port_out_event'] = self.port_out_event
+            d['opposite_port_event'] = self.opposite_port_event
         elif self.type == "char_ports_out":
             d['actor'] = self.actor
-            d['port_in_event'] = self.port_in_event
+            d['opposite_port_event'] = self.opposite_port_event
         elif self.type == "char_enters_location":
             d['actor'] = self.actor
             d['location'] = self.location
@@ -965,15 +968,15 @@ class Tag:
 
     @property
     def target(self) -> str:
-        if self.type not in ['appearance_changed', 'state_changed']:
-            raise NotImplementedError("{!r}-type constraints do not have a recipient property".format(self.type))
-        return self._recipient
+        if self.type not in ['appearance_changed', 'state_changed', 'char_gives_item_to_char']:
+            raise NotImplementedError("{!r}-type constraints do not have a target property".format(self.type))
+        return self._target
 
-    @recipient.setter
-    def recipient(self, value: str):
-        if self.type not in ['appearance_changed', 'state_changed']:
-            raise NotImplementedError("{!r}-type constraints do not have a recipient property".format(self.type))
-        self._recipient = value
+    @target.setter
+    def target(self, value: str):
+        if self.type not in ['appearance_changed', 'state_changed', 'char_gives_item_to_char']:
+            raise NotImplementedError("{!r}-type constraints do not have a target property".format(self.type))
+        self._target = value
 
     @property
     def appearance(self) -> str:
@@ -1050,7 +1053,7 @@ class Tag:
             'char_falls_asleep',
             'char_wakes_up',
             'item_split',
-            'item_merged'
+            'item_merged',
         ]:
             raise NotImplementedError("{!r}-type constraints do not have an 'actor' property".format(self.type))
         self._actor = value
@@ -1080,40 +1083,16 @@ class Tag:
         self._consumed = value
 
     @property
-    def receiver(self) -> str:
-        if self.type != 'char_gives_item_to_char':
-            raise NotImplementedError("{!r}-type constraints do not have a receiver property".format(self.type))
-        return self._receiver
+    def opposite_port_event(self) -> str:
+        if self.type not in ['char_ports_in', 'char_ports_out']:
+            raise NotImplementedError("{!r}-type constraints do not have an opposite_port_event property".format(self.type))
+        return self._opposite_port_event
 
-    @receiver.setter
-    def receiver(self, value: str):
-        if self.type != 'char_gives_item_to_char':
-            raise NotImplementedError("{!r}-type constraints do not have a receiver property".format(self.type))
-        self._receiver = value
-
-    @property
-    def port_in_event(self) -> str:
-        if self.type != 'char_ports_out':
-            raise NotImplementedError("{!r}-type constraints do not have a port_in_event property".format(self.type))
-        return self._port_in_event
-
-    @port_in_event.setter
-    def port_in_event(self, value: str):
-        if self.type != 'char_ports_out':
-            raise NotImplementedError("{!r}-type constraints do not have a port_in_event property".format(self.type))
-        self._port_in_event = value
-
-    @property
-    def port_out_event(self) -> str:
-        if self.type != 'char_ports_in':
-            raise NotImplementedError("{!r}-type constraints do not have a port_out_event property".format(self.type))
-        return self._port_out_event
-
-    @port_out_event.setter
-    def port_out_event(self, value: str):
-        if self.type != 'char_ports_in':
-            raise NotImplementedError("{!r}-type constraints do not have a port_out_event property".format(self.type))
-        self._port_out_event = value
+    @opposite_port_event.setter
+    def opposite_port_event(self, value: str):
+        if self.type not in ['char_ports_in', 'char_ports_out']:
+            raise NotImplementedError("{!r}-type constraints do not have an opposite_port_event property".format(self.type))
+        self._opposite_port_event = value
 
     @property
     def location(self) -> str:
