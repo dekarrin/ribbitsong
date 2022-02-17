@@ -48,6 +48,9 @@ class ParadoxAddress:
         fmt = "<{:s}({:d}):{:s}({:d}):{:s}({:d})>"
         return fmt.format(self.universe, self.universe_index, self.timeline, self.timeline_index, self.location, self.location_index)
 
+    def all_indices_equal(self, value) -> bool:
+        return self.location_index == self.timeline_index == self.universe_index == value
+
 
 class Citation:
     types = ['dialog', 'narration', 'media', 'commentary']
@@ -1212,14 +1215,22 @@ class Timeline:
     def copy(self) -> 'Timeline':
         return Timeline(path=self.path, locations=self.locations)
         
-    def get_location(self, location: str) -> Optional[Location]:
+    def get_location(self, location: str, index: int = -1) -> Optional[Location]:
         """
         Get a Location in this Timeline by name (path).
+
+        If index is provided it is used instead of timeline.
         """
-        for loc in self.locations:
-            if loc.path == location:
-                return loc
-        return None
+        if index >= 0:
+            if index >= len(self.locations):
+                return None
+            else:
+                return self.locations[index]
+        else:
+            for loc in self.locations:
+                if loc.path == location:
+                    return loc
+            return None
 
     def __eq__(self, other) -> bool:
         if not isinstance(other, Timeline):
@@ -1267,14 +1278,22 @@ class Universe:
     def copy(self) -> 'Universe':
         return Universe(name=self.name, timelines=self.timelines)
         
-    def get_timeline(self, timeline: str) -> Optional[Timeline]:
+    def get_timeline(self, timeline: str, index: int = -1) -> Optional[Timeline]:
         """
         Get a Timeline in this universe by name (path).
+
+        If index is provided it is used instead of timeline.
         """
-        for tl in self.timelines:
-            if tl.path == timeline:
-                return tl
-        return None
+        if index >= 0:
+            if index >= len(self.timelines):
+                return None
+            else:
+                return self.timelines[index]
+        else:
+            for tl in self.timelines:
+                if tl.path == timeline:
+                    return tl
+            return None
 
     def __eq__(self, other) -> bool:
         if not isinstance(other, Universe):
@@ -1458,34 +1477,44 @@ class Event:
         """
         Get a Universe by name. Return None if not found.
         
-        :param address: Must contain the universe to get.
+        :param address: Must contain the universe to get. If universe_index is present, that will be used regardless
+        of the value of its universe field.
         """
-        for u in self.universes:
-            if u.name == address.universe:
-                return u
-        return None
+
+        if address.universe_index >= 0:
+            if address.universe_index >= len(self.universes):
+                return None
+            else:
+                return self.universes[address.universe_index]
+        else:
+            for u in self.universes:
+                if u.name == address.universe:
+                    return u
+            return None
         
     def get_timeline(self, address: ParadoxAddress) -> Optional[Timeline]:
         """
         Get a Timeline by address. Return None if not found.
         
-        :param address: Must contain the timeline to get and the universe it is located in.
+        :param address: Must contain the timeline to get and the universe it is located in. If indices are present,
+        those will be used regardless of the value of their related name-based fields.
         """
         univ = self.get_universe(address)
         if univ is None:
             return None
-        return univ.get_timeline(address.location)
+        return univ.get_timeline(address.timeline, address.timeline_index)
         
     def get_location(self, address: ParadoxAddress) -> Optional[Location]:
         """
         Get a Location by address. Return None if not found.
         
-        :param address: Must contain universe, timeline, and location names.
+        :param address: Must contain universe, timeline, and location names. If indices are present,
+        those will be used regardless of the value of their related name-based fields.
         """
         tl = self.get_timeline(address)
         if tl is None:
             return None
-        return tl.get_location(address.location)
+        return tl.get_location(address.location, address.location_index)
 
     def copy(self) -> 'Event':
         return Event.from_dict(self.to_dict())

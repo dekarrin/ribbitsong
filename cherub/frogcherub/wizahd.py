@@ -23,12 +23,166 @@ class Wizahd:
         
         # TODO: default the above to 'last event'
 
-    def mc_get_item(self):
-        if self._following is None:
+    def obtain_item(self, item: str, char: Optional[str] = None):
+        if self._following is None and char is None:
             raise ValueError("Not following any char yet")
+        if char is None:
+            char = self._following
 
-        self.
-        
+        char_addr = self.current_event.address_of(char)
+        if char_addr is None:
+            msg = "character {!r} is not yet in this event. Add them manually or give an entrance event"
+            raise ValueError(msg.format(char))
+
+        char_loc = self.current_event.get_location(char_addr)
+        if item not in char_loc.items:
+            msg = "item {!r} is not yet in this event in the same place as {!r}."
+            msg += "Add it manually or give an event that adds one."
+            raise ValueError(msg.format(item, char))
+
+        self.add_char_item_interaction("char_obtains_item", char, item)
+
+        char_loc.items.remove(item)
+        if char_addr.all_indices_equal(0):
+            self._items.remove(item)
+
+    def drop_item(self, item: str, char: Optional[str] = None):
+        if self._following is None and char is None:
+            raise ValueError("Not following any char yet")
+        if char is None:
+            char = self._following
+
+        char_addr = self.current_event.address_of(char)
+        if char_addr is None:
+            msg = "character {!r} is not yet in this event. Add them manually or give an entrance event"
+            raise ValueError(msg.format(char))
+
+        char_loc = self.current_event.get_location(char_addr)
+        if item in char_loc.items:
+            msg = "item {!r} is already in this event in the same place as {!r}."
+            msg += "Remove it manually or give an event that removes one."
+            raise ValueError(msg.format(item, char))
+
+        self.add_char_item_interaction("char_drops_item", char, item)
+
+        char_loc.items.add(item)
+        if char_addr.all_indices_equal(0):
+            self._items.append(item)
+
+    def use_item(self, item: str, consumed: bool, char: Optional[str] = None):
+        if self._following is None and char is None:
+            raise ValueError("Not following any char yet")
+        if char is None:
+            char = self._following
+
+        char_addr = self.current_event.address_of(char)
+        if char_addr is None:
+            msg = "character {!r} is not yet in this event. Add them manually or give an entrance event"
+            raise ValueError(msg.format(char))
+
+        char_loc = self.current_event.get_location(char_addr)
+
+        self.add_char_item_interaction("char_uses_item", char, item, consumed=consumed)
+
+        if consumed and item in char_loc.items:
+            char_loc.items.remove(item)
+            if char_addr.all_indices_equal(0):
+                self._items.remove(item)
+
+    def give_item(self, item: str, to_char: str, char: Optional[str] = None):
+        if self._following is None and char is None:
+            raise ValueError("Not following any char yet")
+        if char is None:
+            char = self._following
+
+        char_addr = self.current_event.address_of(char)
+        if char_addr is None:
+            msg = "character {!r} is not yet in this event. Add them manually or give an entrance event"
+            raise ValueError(msg.format(char))
+
+        to_char_addr = self.current_event.address_of(to_char)
+        if to_char_addr is None:
+            msg = "character {!r} is not yet in this event. Add them manually or give an entrance event"
+            raise ValueError(msg.format(to_char))
+
+        self.add_char_item_interaction("char_gives_item_to_char", char, item, target=to_char)
+
+        char_loc = self.current_event.get_location(char_addr)
+        if item in char_loc.items:
+            char_loc.items.remove(item)
+            if char_addr.all_indices_equal(0):
+                self._items.remove(item)
+
+    def merge_items(self, items: List[str], results: List[str], sylladex_results: List[str], char: Optional[str] = None):
+        if self._following is None and char is None:
+            raise ValueError("Not following any char yet")
+        if char is None:
+            char = self._following
+
+        char_addr = self.current_event.address_of(char)
+        if char_addr is None:
+            msg = "character {!r} is not yet in this event. Add them manually or give an entrance event"
+            raise ValueError(msg.format(char))
+
+        char_loc = self.current_event.get_location(char_addr)
+        for item in items:
+            if item not in char_loc.items:
+                pass  # dont disallow this, the char may be using items in inventory and we arent yet tracking inventory
+                      # so no way to check atm
+        for result in results:
+            if result in char_loc.items and result not in sylladex_results:
+                msg = "result item {!r} is already in this event in the same place as {!r}."
+                msg += "Remove it manually or give an event that removes it."
+                raise ValueError(msg.format(result, char))
+
+        self.add_char_item_interaction("item_merged", char, source_items=items, result_items=results, sylladex_results=sylladex_results)
+
+        for item in items:
+            if item in char_loc.items:
+                char_loc.items.remove(item)
+                if char_addr.all_indices_equal(0):
+                    self._items.remove(item)
+        for result in results:
+            if result not in char_loc.items and result not in sylladex_results:
+                char_loc.items.add(result)
+                if char_addr.all_indices_equal(0):
+                    self._items.append(result)
+
+    def split_items(self, items: List[str], results: List[str], sylladex_results: List[str], char: Optional[str] = None):
+        if self._following is None and char is None:
+            raise ValueError("Not following any char yet")
+        if char is None:
+            char = self._following
+
+        char_addr = self.current_event.address_of(char)
+        if char_addr is None:
+            msg = "character {!r} is not yet in this event. Add them manually or give an entrance event"
+            raise ValueError(msg.format(char))
+
+        char_loc = self.current_event.get_location(char_addr)
+        for item in items:
+            if item not in char_loc.items:
+                pass  # dont disallow this, the char may be using items in inventory and we arent yet tracking inventory
+                      # so no way to check atm
+        for result in results:
+            if result in char_loc.items and result not in sylladex_results:
+                msg = "result item {!r} is already in this event in the same place as {!r}."
+                msg += "Remove it manually or give an event that removes it."
+                raise ValueError(msg.format(result, char))
+
+        self.add_char_item_interaction("item_split", char, source_items=items, result_items=results, sylladex_results=sylladex_results)
+
+        for item in items:
+            if item in char_loc.items:
+                char_loc.items.remove(item)
+                if char_addr.all_indices_equal(0):
+                    self._items.remove(item)
+        for result in results:
+            if result not in char_loc.items and result not in sylladex_results:
+                char_loc.items.add(result)
+                if char_addr.all_indices_equal(0):
+                    self._items.append(result)
+
     def mc_start_convo(
         self,
         other_char: str,
@@ -116,8 +270,45 @@ class Wizahd:
         self.scene_change(new_loc)
         self.add_char_enter()
 
-    def add_char_item_interaction(self, ):
-        
+    def add_char_item_interaction(
+            self,
+            interaction_type: str,
+            actor: str, item: str = "",
+            target: str = "",
+            consumed: bool = False,
+            source_items: List[str] = None,
+            result_items: List[str] = None,
+            sylladex_results: List[str] = None
+    ):
+        if interaction_type not in ["char_obtains_item", "char_drops_item", "char_uses_item", "char_gives_item_to_char", "item_merged", "item_split"]:
+            raise ValueError("not a valid item interaction type: {!r}".format(interaction_type))
+
+        if source_items is None:
+            source_items = list()
+        if result_items is None:
+            result_items = list()
+        if sylladex_results is None:
+            sylladex_results = list()
+
+        tag_args = {
+            "actor": actor,
+        }
+
+        if interaction_type in ['char_obtains_item', 'char_drops_item', 'char_uses_item', 'char_gives_item_to_char']:
+            tag_args['item'] = item
+        elif interaction_type in ['item_split', 'item_merged']:
+            tag_args['source_items'] = list(source_items)
+            tag_args['result_items'] = list(result_items)
+            tag_args['results_in_sylladex'] = list(sylladex_results)
+
+        if interaction_type == "char_uses_item":
+            tag_args['consumed'] = consumed
+        elif interaction_type == "char_gives_item_to_char":
+            tag_args['target'] = target
+
+        t = Tag(interaction_type, **tag_args)
+        self.current_event.tags.append(t)
+
     def add_char_exit(self, from_loc=None, char=None):
         if from_loc is None:
             from_loc = self._location
