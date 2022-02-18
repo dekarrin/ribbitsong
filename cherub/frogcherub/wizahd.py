@@ -486,6 +486,9 @@ class Wizahd:
         new_event = Event(portrayed_in=portrayal, constraints=[last_page_link], universes=[univ])
         self._events.append(new_event)
         
+    def copy_events(self) -> List[Event]:
+        return list(self._events)
+        
     @property
     def current_event(self) -> Event:
         return self._events[self._cursor]
