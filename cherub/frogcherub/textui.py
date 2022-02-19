@@ -1,5 +1,6 @@
 # Contains classes for working with the wizahd from the command line
 
+from typing import List, Optional, Dict
 from . import wizahd
 from .events import Event
 from . import format
@@ -11,6 +12,7 @@ _main_right_width = _total_width - _main_left_width
 
 _following_and_univ_width = _main_right_width
 _name_and_desc_width = _main_left_width - _following_and_univ_width
+
 
 class App:
     def __init__(self):
@@ -27,6 +29,7 @@ class App:
         """Start main loop"""
         self.running = True
         self.w.updated = False
+        updated = True
         while self.running:
             if updated:
                 self.display()
@@ -81,7 +84,7 @@ class App:
     def _build_main_component(self) -> str:
         left = self._build_main_component_left()
         right = self._build_main_component_right()
-        full = format.columns(left, _main_left_width, right_top, _main_right_width)
+        full = format.columns(left, _main_left_width, right, _main_right_width)
         
         lines = full.split('\n')
         for i in range(len(lines)):
@@ -104,20 +107,21 @@ class App:
         return top + '\n' + bot
         
     def _build_main_component_right(self) -> str:
-        return self._build_tags_component()
+        return self._build_tags_component_text()
         
-    def _build_following_and_universes(self):
+    def _build_following_and_universes(self) -> str:
         following = self._build_following_component_text()
         bar = '-' * _following_and_univ_width
         universes = self._build_universe_component_text()
         return following + '\n' + bar + '\n' + universes
         
-    def _build_name_and_description(self):
+    def _build_name_and_description(self) -> str:
         name = self._build_name_component_text()
-        bar = '-' * _name_and_desc_width - 1
+        bar = '-' * (_name_and_desc_width - 1)
         desc = self._build_description_component_text()
+        return name + '\n' + bar + '\n' + desc
         
-    def _build_following_component_text() -> str:
+    def _build_following_component_text(self) -> str:
         comp = "Following:\n"
         if self.w.following is None:
             comp += "(Nobody)"
@@ -127,17 +131,17 @@ class App:
         
         comp += "In:\n"
         if self.w.universe is not None:
-            comp += "U:" + self.w.universe += "\n"
+            comp += "U:" + self.w.universe + "\n"
         else:
             comp += "U: (!) None\n"
             
-        if self.w.timline is not None:
-            comp += "T:" + self.w.timeline += "\n"
+        if self.w.timeline is not None:
+            comp += "T:" + self.w.timeline + "\n"
         else:
             comp += "T: (!) None\n"
             
         if self.w.location is not None:
-            comp += "L:" + self.w.location += "\n"
+            comp += "L:" + self.w.location + "\n"
         else:
             comp += "L: (!) None"
         
@@ -167,8 +171,8 @@ class App:
         
     def _build_inhabitants_component_text(self) -> str:
         comp = "Items: "
-        comp += ', '.join(self.w.current_event.items)
+        comp += ', '.join(self.w.items)
         comp += '\n'
         comp += 'Chars: '
-        comp += ', '.join(self.w.current_event.chars)
+        comp += ', '.join(self.w.characters)
         return comp

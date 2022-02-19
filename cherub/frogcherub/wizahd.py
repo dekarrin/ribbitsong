@@ -27,7 +27,7 @@ class Wizahd:
             p = Citation("narration", work=self._work, panel=self._comic_page)
             c = Constraint("narrative_entrypoint")
             new_event = Event(portrayed_in=p, constraints=[c])
-            self._events.append(Event())
+            self._events.append(new_event)
             self.goto(0)
         else:
             self.goto(len(self._events) - 1)

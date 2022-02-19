@@ -4,10 +4,11 @@ at github.com/dekarrin/rosed, although this port does not use the gem-strings at
 instead opts to use regular str objects.
 """
 
+from typing import List
+
 import re
 
 _space_runs_re = re.compile(r' {2,}')
-
     
 
 def wrap(s: str, width: int, extend: bool = False) -> str:
@@ -22,19 +23,24 @@ def wrap(s: str, width: int, extend: bool = False) -> str:
     :param extend: Whether to ensure all lines are the same width, adding spaces to lines
     that are too short to make them the size of width.
     """
+    print()
+    print("wrap(s={!r}, width={!r}, extend={!r})".format(s, width, extend))
     if width < 2:
         raise ValueError("Width must be at least 2 to allow for hyphenation")
         
     if s == '':
+        print("  shortline")
         if extend:
             return ' ' * width
         else:
             return s
     
     s = _space_runs_re.sub(' ', s)
+
+    print("  collapsed: {!r}".format(s))
     
     lines = list()
-    cur_word, cur_line = ""
+    cur_word = cur_line = ""
     for ch in s:
         if ch == ' ':
             cur_line = _append_word_to_line(lines, cur_word, cur_line, width)
@@ -44,29 +50,31 @@ def wrap(s: str, width: int, extend: bool = False) -> str:
             
     if cur_word != "":
         cur_line = _append_word_to_line(lines, cur_word, cur_line, width)
-        cur_word = ""
         
     if cur_line != "":
         lines.append(cur_line)
         
     if extend:
         for i, _ in enumerate(lines):
-                needed_width = width - len(lines[i])
+            print("    lines[{!r}]: {!r}".format(i, lines[i]))
+            needed_width = width - len(lines[i])
+            print("    needed: {:d}".format(needed_width))
             if needed_width >= 1:
                 lines[i] += ' ' * needed_width
-        
+
+    print("  return: {!s}".format('\n'.join(lines)))
     return '\n'.join(lines)
 
 
 def columns(
-        left: str,
-        left_width: int,
-        right: str,
-        right_width: int,
-        extend_right: bool = True,
-        sep: str = '|',
-        sep_padding: int = 1
-    ) -> str:
+    left: str,
+    left_width: int,
+    right: str,
+    right_width: int,
+    extend_right: bool = True,
+    sep: str = '|',
+    sep_padding: int = 1
+) -> str:
     """
     Lay out two columns whose source text is given by left and right.
     
@@ -80,6 +88,8 @@ def columns(
     the right_width if it isn't already that big. If set to True, the returned string will
     have lines of the same length; if set to False, the right side will not be extended
     and the returned string may have lines of unequal length.
+    :param sep: The separator to use for the middle line.
+    :param sep_padding: The amount of padding to have from the separator.
     """
     if left_width - sep_padding < 2:
         raise ValueError("Left width - separator padding is < 2: {!r}".format(left_width - sep_padding))
@@ -123,8 +133,8 @@ def columns(
 
 def _append_word_to_line(lines: List[str], word: str, line: str, width: int) -> str:
     # any width less than 2 is not possible and will result in an infinite loop,
-	# as at least one character is required for next in word, and one character for
-	# line continuation.
+    # as at least one character is required for next in word, and one character for
+    # line continuation.
     if width < 2:
         raise ValueError("Invalid width in call to _append_word_to_line: {!r}".format(width))
         

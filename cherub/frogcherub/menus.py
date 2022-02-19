@@ -1,6 +1,6 @@
+from .events import Event
 from .version import Version
 from . import entry, vars, mutations, textui
-from .store import FlexibleStore
 from .forms import Form
 from typing import Tuple, Optional, List
 
@@ -85,8 +85,7 @@ def show_main_menu(start_file: Optional[str] = None):
             wiz_list = list()
             for e in dataset['events']:
                 wiz_list.append(Event(**e))
-            
-            
+
             wizard_app.import_events(wiz_list)
             wizard_app.start()
             if wizard_app.updated_events():
@@ -137,7 +136,7 @@ def query_data(dataset):
     engine = yaql.factory.YaqlFactory().create()
     running = True
     print("Data query mode")
-    print("(type \q to quit)")
+    print("(type \\q to quit)")
     while running:
         query = input("> ")
         if query == r'\q':
@@ -153,8 +152,7 @@ def query_data(dataset):
         print(output)
 
 
-
-def save_dataset(dataset: dict, default: str) -> str:
+def save_dataset(dataset: dict, default: str) -> Optional[str]:
     """
     Save dataset to disk. Prompt for filename, using the passed in one as the default.
     
@@ -182,7 +180,8 @@ def save_dataset(dataset: dict, default: str) -> str:
     entry.pause()
     return fname
 
-def load_dataset(default: str) -> Tuple[dict, str]:
+
+def load_dataset(default: str) -> Tuple[Optional[dict], Optional[str]]:
     p = "Enter filename to load from"
     if default is not None:
         p += " (default: {!r})".format(default)
@@ -199,7 +198,7 @@ def load_dataset(default: str) -> Tuple[dict, str]:
     return dataset, fname
     
 
-def read_datafile(fname) -> dict:
+def read_datafile(fname) -> Optional[dict]:
     try:
         with open(fname, 'r') as fp:
             dataset = json.load(fp)
@@ -214,7 +213,7 @@ def read_datafile(fname) -> dict:
     return dataset    
 
     
-def enter_data(last_event = None) -> List[dict]:
+def enter_data(last_event=None) -> List[dict]:
     """
     Return a list of the event points entered.
     """
@@ -238,6 +237,7 @@ def enter_data(last_event = None) -> List[dict]:
                     last_univ_location = last_loc['path']
     
     current_id = None
+
     def set_current_id(v):
         nonlocal current_id
         current_id = v
@@ -245,8 +245,7 @@ def enter_data(last_event = None) -> List[dict]:
     def set_current_id_to_last():
         nonlocal current_id, last_id_var
         last_id_var.set(current_id)
-    
-    
+
     event_form = form.add_object_field("events", multivalue=True, done_hook=set_current_id_to_last)
     
     event_form.add_auto_uuid_field("id", entry_hook=set_current_id)
@@ -387,6 +386,7 @@ def create_event_tag_field(parent_form, field_name, multivalue=False, nullable=F
     item_split_form.add_field("by", nullable=True)
     item_split_form.add_field("results_in_sylladex", multivalue=True)
 
+
 def create_constraint_field(parent_form, field_name, id_default, multivalue=False, nullable=False):
     types = [
         "narrative_immediate",
@@ -434,4 +434,3 @@ def create_constraint_field(parent_form, field_name, id_default, multivalue=Fals
     sync_form = constraint_forms[7]
     sync_form.add_field("ref_event", default=id_default.get)
     create_citation_field(sync_form, "citation", nullable=False)
- 
