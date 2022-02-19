@@ -1,5 +1,5 @@
 from .version import Version
-from . import entry, vars, mutations
+from . import entry, vars, mutations, textui
 from .store import FlexibleStore
 from .forms import Form
 from typing import Tuple, Optional, List
@@ -12,10 +12,11 @@ import json
 def show_main_menu(start_file: Optional[str] = None):
     unsaved_mutations = False
     last_filename = None
+    wizard_app = textui.App()
     running = True
     dataset = {'events': []}
     
-    if start_file is not None:        
+    if start_file is not None:
         loaded_dataset = read_datafile(start_file)
         if loaded_dataset is not None:
             dataset = loaded_dataset
@@ -26,7 +27,8 @@ def show_main_menu(start_file: Optional[str] = None):
     print("=============================")
     while running:
         choices = {
-            "enter": "Enter data into the collection",
+            "wizahd": "Use wizahd text UI to enter data",
+            "enter": "Enter data into the collection manually",
             "query": "Query the data using YAQL syntax",
             "mutate": "Run a mutation operation",
             "save": "Save the collection to disk",
@@ -79,6 +81,18 @@ def show_main_menu(start_file: Optional[str] = None):
             events = enter_data(last_event)
             for e in events:
                 dataset['events'].append(e)
+        elif choice == "wizahd":
+            wiz_list = list()
+            for e in dataset['events']:
+                wiz_list.append(Event(**e))
+            
+            
+            wizard_app.import_events(wiz_list)
+            wizard_app.start()
+            if wizard_app.updated_events():
+                wiz_list = wizard_app.export_events()
+                unsaved_mutations = True
+                dataset['events'] = [e.to_dict() for e in wiz_list]
 
 
 def show_mutate_menu(dataset: dict) -> bool:

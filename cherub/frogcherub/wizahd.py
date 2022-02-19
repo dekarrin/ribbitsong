@@ -5,6 +5,8 @@ from typing import List, Optional
 
 class Wizahd:
     def __init__(self, events: List[Event]):
+        self.updated = False
+    
         self._cursor = -1
         self._events = list(events)
         
@@ -19,9 +21,16 @@ class Wizahd:
         self._narrative_link = "causal"
         self._following = None
 
-        self._convo_participants = dict()  # TODO: make sure this is filled properly on event swap
+        self._convo_participants = dict()
         
-        # TODO: default the above to 'last event'
+        if len(self._events) < 1:
+            p = Citation("narration", work=self._work, panel=self._comic_page)
+            c = Constraint("narrative_entrypoint")
+            new_event = Event(portrayed_in=p, constraints=[c])
+            self._events.append(Event())
+            self.goto(0)
+        else:
+            self.goto(len(self._events) - 1)
 
     def obtain_item(self, item: str, char: Optional[str] = None):
         if self._following is None and char is None:
@@ -45,6 +54,8 @@ class Wizahd:
         char_loc.items.remove(item)
         if char_addr.all_indices_equal(0):
             self._items.remove(item)
+            
+        self.updated = True
 
     def drop_item(self, item: str, char: Optional[str] = None):
         if self._following is None and char is None:
@@ -68,6 +79,8 @@ class Wizahd:
         char_loc.items.add(item)
         if char_addr.all_indices_equal(0):
             self._items.append(item)
+            
+        self.updated = True
 
     def use_item(self, item: str, consumed: bool, char: Optional[str] = None):
         if self._following is None and char is None:
@@ -88,6 +101,8 @@ class Wizahd:
             char_loc.items.remove(item)
             if char_addr.all_indices_equal(0):
                 self._items.remove(item)
+            
+        self.updated = True
 
     def give_item(self, item: str, to_char: str, char: Optional[str] = None):
         if self._following is None and char is None:
@@ -112,6 +127,8 @@ class Wizahd:
             char_loc.items.remove(item)
             if char_addr.all_indices_equal(0):
                 self._items.remove(item)
+            
+        self.updated = True
 
     def merge_items(self, items: List[str], results: List[str], sylladex_results: List[str], char: Optional[str] = None):
         if self._following is None and char is None:
@@ -147,6 +164,8 @@ class Wizahd:
                 char_loc.items.add(result)
                 if char_addr.all_indices_equal(0):
                     self._items.append(result)
+            
+        self.updated = True
 
     def split_items(self, items: List[str], results: List[str], sylladex_results: List[str], char: Optional[str] = None):
         if self._following is None and char is None:
@@ -182,6 +201,8 @@ class Wizahd:
                 char_loc.items.add(result)
                 if char_addr.all_indices_equal(0):
                     self._items.append(result)
+            
+        self.updated = True
 
     def mc_start_convo(
         self,
@@ -211,6 +232,8 @@ class Wizahd:
             other_char_addr.universe = self._universe
             
         self.mc_add_convo_participant(other_char, other_char_addr)
+            
+        self.updated = True
 
     def mc_continue_convo(self, to_panel=0):
         if self._following is None:
@@ -225,6 +248,8 @@ class Wizahd:
         for participant in self._convo_participants:
             addr = self._convo_participants[participant]
             self.mc_add_convo_participant(participant, addr)
+            
+        self.updated = True
 
     def mc_end_convo(self, to_panel=0):
         if self._following is None:
@@ -234,6 +259,8 @@ class Wizahd:
             raise ValueError("Not yet in convo")
 
         self.advance_narrative(to_panel)
+            
+        self.updated = True
             
     def mc_add_convo_participant(self, char: str, address: ParadoxAddress):
         if "convo" not in self.current_event.meta:
@@ -259,6 +286,8 @@ class Wizahd:
             loc.characters.append(char)
 
         self.current_event.meta.add('convo:' + str(char))
+            
+        self.updated = True
         
     def mc_go_into_location(self, new_loc: str, to_panel=0):
         if self._following is None:
@@ -269,6 +298,8 @@ class Wizahd:
         self.advance_narrative(to_panel)
         self.scene_change(new_loc)
         self.add_char_enter()
+            
+        self.updated = True
 
     def add_char_item_interaction(
             self,
@@ -308,6 +339,8 @@ class Wizahd:
 
         t = Tag(interaction_type, **tag_args)
         self.current_event.tags.append(t)
+            
+        self.updated = True
 
     def add_char_exit(self, from_loc=None, char=None):
         if from_loc is None:
@@ -320,6 +353,8 @@ class Wizahd:
         
         exit_tag = Tag("char_exits_location", character=char, location=from_loc)
         self.current_event.tags.append(exit_tag)
+            
+        self.updated = True
         
     def add_char_enter(self, to_loc=None, char=None):
         if to_loc is None:
@@ -332,6 +367,8 @@ class Wizahd:
         
         enter_tag = Tag("char_enters_location", character=char, location=to_loc)
         self.current_event.tags.append(enter_tag)
+            
+        self.updated = True
         
     def get_last_event(self, location=None, timeline=None, univ=None) -> Event:
         """
@@ -409,8 +446,8 @@ class Wizahd:
         last_event = self.get_last_event(new_location, dest_timeline, dest_universe)
         if last_event is not None:
             loc_at_end = last_event.scene_at_end(new_location, dest_timeline, dest_universe)
-            self._items = loc_at_end.items
-            self._chars = loc_at_end.characters
+            self._items = list(loc_at_end.items)
+            self._chars = list(loc_at_end.characters)
         
         self._location = new_location
         self.current_event.universes[0].timelines[0].locations[0].path = new_location
@@ -422,6 +459,8 @@ class Wizahd:
         if new_universe is not None:
             self._universe = new_universe
             self.current_event.universes[0].name = new_universe
+            
+        self.updated = True
         
     def next(self):
         self.goto(self._cursor + 1)
@@ -431,7 +470,7 @@ class Wizahd:
         
     def goto(self, cursor: int):
         if cursor < 0:
-            raise ValueError("cursor needs to be > 0")
+            raise ValueError("cursor needs to be >= 0")
         if cursor >= len(self._events):
             raise ValueError("cursor bigger than number of events")
             
@@ -443,11 +482,20 @@ class Wizahd:
         
         self._work = event.portrayed_in.work
         self._comic_page = event.portrayed_in.panel
-        self._universe = event.universes[0].name
-        self._timeline = event.universes[0].timelines[0].path
-        self._location = event.universes[0].timelines[0].locations[0].path
-        self._items = event.universes[0].timelines[0].locations[0].items
-        self._chars = event.universes[0].timelines[0].locations[0].characters
+               
+        self._universe = None
+        self._timeline = None
+        self._location = None
+        self._items = list()
+        self._chars = list()
+        if len(event.universes) > 0:
+            self._universe = event.universes[0].name
+            if len(event.universes[0].timelines) > 0:
+                self._timeline = event.universes[0].timelines[0].path
+                if len(event.universes[0].timelines[0].locations) > 0:
+                    self._location = event.universes[0].timelines[0].locations[0].path
+                    self._items = list(event.universes[0].timelines[0].locations[0].items)
+                    self._chars = list(event.universes[0].timelines[0].locations[0].characters)
 
         if "convo" in event.meta:
             for m in event.meta:
@@ -485,6 +533,8 @@ class Wizahd:
         
         new_event = Event(portrayed_in=portrayal, constraints=[last_page_link], universes=[univ])
         self._events.append(new_event)
+            
+        self.updated = True
         
     def copy_events(self) -> List[Event]:
         return list(self._events)
@@ -512,6 +562,8 @@ class Wizahd:
     @name.setter
     def name(self, value: str):
         self.current_event.name = value
+            
+        self.updated = True
         
     @property
     def description(self) -> str:
@@ -520,6 +572,8 @@ class Wizahd:
     @description.setter
     def description(self, value: str):
         self.current_event.description = value
+            
+        self.updated = True
         
     @property
     def work(self) -> str:
@@ -529,6 +583,8 @@ class Wizahd:
     def work(self, value: str):
         self._work = value
         self.current_event.portrayed_in.work = value
+            
+        self.updated = True
         
     @property
     def universe(self) -> str:
@@ -538,6 +594,8 @@ class Wizahd:
     def universe(self, value: str):
         self._universe = value
         self.current_event.universes[0].name = value
+            
+        self.updated = True
         
     @property
     def timeline(self) -> str:
@@ -547,6 +605,8 @@ class Wizahd:
     def timeline(self, value: str):
         self._timeline = value
         self.current_event.universes[0].timelines[0].path = value
+            
+        self.updated = True
         
     @property
     def location(self) -> str:
@@ -556,6 +616,8 @@ class Wizahd:
     def location(self, value: str):
         self._location = value
         self.current_event.universes[0].timelines[0].locations[0].path = value
+            
+        self.updated = True
         
     @property
     def comic_page(self) -> int:

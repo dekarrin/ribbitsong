@@ -26,6 +26,7 @@ class App:
     def start(self):
         """Start main loop"""
         self.running = True
+        self.w.updated = False
         while self.running:
             if updated:
                 self.display()
@@ -33,6 +34,9 @@ class App:
             if command is None:
                 continue
             updated = self.execute(command)
+            
+    def updated_events(self) -> bool:
+        return self.w.updated
             
     def execute(self, command: str) -> bool:
         """
