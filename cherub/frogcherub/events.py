@@ -1451,6 +1451,22 @@ class Event:
         end_location = Location(path=target_loc.path, items=list(end_items), characters=list(end_chars))
         return end_location
         
+    def all_addresses(self) -> List[ParadoxAddress]:
+        """Get all paradox addresses currently present in this event."""
+        
+        addresses = list()
+        
+        for u_idx, u in enumerate(self.universes):
+            for tl_idx, tl in enumerate(u.timelines):
+                for loc_idx, loc in enumerate(tl.locations):
+                    addr = ParadoxAddress(universe=u.name, timeline=tl.path, location=loc.path)
+                    addr.universe_index = u_idx
+                    addr.timeline_index = tl_idx
+                    addr.location_index = loc_idx
+                    addresses.append(addr)
+        
+        return addresses
+        
     def address_of(self, item_or_char: str) -> Optional[ParadoxAddress]:
         """
         Find the location of the given item
