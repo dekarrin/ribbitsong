@@ -186,6 +186,23 @@ class TestFormat(unittest.TestCase):
                     "that also will be\n"
                     "wrapped."
                 )
+            ),
+            TC(
+                name="preserve runs of pre-existing linebreaks",
+                input=(
+                    "a line that will be wrapped.\n"
+                    "\n"
+                    "A second line, that also will be wrapped."
+                ),
+                width=18,
+                expected=(
+                    "a line that will\n"
+                    "be wrapped.\n"
+                    "\n"
+                    "A second line,\n"
+                    "that also will be\n"
+                    "wrapped."
+                )
             )
         ]
 

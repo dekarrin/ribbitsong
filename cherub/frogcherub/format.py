@@ -38,9 +38,17 @@ def wrap(s: str, width: int, extend: bool = False) -> str:
     # pre-existing line, then combine the results together.
 
     existing_blocks = s.split('\n')
+
     completed_block_lines = list()
     for block in existing_blocks:
         lines = list()
+
+        # edge case - if we are operating on a blank block, we need to manually set it as having
+        # its lines because the following algo would produce zero result lines
+        if block == "":
+            completed_block_lines.append('')
+            continue
+
         cur_word = cur_line = ""
         for ch in block:
             if ch == ' ':
@@ -98,7 +106,11 @@ def columns(
     
     left_text_width = left_width - sep_padding
     right_text_width = right_width - sep_padding
-    
+
+    break_test_mode = False
+    if '\n' in left or '\n' in right:
+        break_test_mode = True
+
     wrapped_left = wrap(left, left_text_width, extend=True)
     wrapped_right = wrap(right, right_text_width, extend=extend_right)
     
