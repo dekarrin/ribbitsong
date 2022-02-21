@@ -1,7 +1,7 @@
 # Contains classes for working with the wizahd from the command line
 
 from typing import List, Optional, Dict
-from . import wizahd
+from . import wizahd, entry
 from .events import Event
 from . import format
 
@@ -23,6 +23,16 @@ _usable_upper_left_width = _left_width - 3
 _left_percent_within_left_main = LeftColPercentWidth * (1.0/_left_and_center_col_percent_width)
 _following_and_univ_width = int(round(_usable_upper_left_width * _left_percent_within_left_main))
 _name_and_desc_width = _usable_upper_left_width - _following_and_univ_width
+
+
+def input_str(prompt: str) -> str:
+    if prompt.endswith(":"):
+        prompt += " "
+    elif not prompt.endswith(": "):
+        prompt += ": "
+
+    user_input = entry.get(str, prompt, allow_blank=True)
+    return user_input.strip()
 
 
 class App:

@@ -28,9 +28,8 @@ class Wizahd:
             c = Constraint("narrative_entrypoint")
             new_event = Event(portrayed_in=p, constraints=[c])
             self._events.append(new_event)
-            self.goto(0)
-        else:
-            self.goto(len(self._events) - 1)
+
+        self.goto(len(self._events) - 1)
 
     def obtain_item(self, item: str, char: Optional[str] = None):
         if self._following is None and char is None:
