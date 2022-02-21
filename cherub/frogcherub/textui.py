@@ -22,7 +22,6 @@ _usable_upper_left_width = _left_width - 3
 
 _left_percent_within_left_main = LeftColPercentWidth * (1.0/_left_and_center_col_percent_width)
 _following_and_univ_width = int(round(_usable_upper_left_width * _left_percent_within_left_main))
-print("{!r} * {!r} = {!r}".format(_usable_upper_left_width, _left_percent_within_left_main, _following_and_univ_width))
 _name_and_desc_width = _usable_upper_left_width - _following_and_univ_width
 
 
@@ -45,6 +44,7 @@ class App:
         while self.running:
             if updated:
                 self.display()
+                updated = False
             command = self.input_command()
             if command is None:
                 continue
@@ -60,7 +60,8 @@ class App:
         """
         options = {
             'exit': "Exit the Wizahd",
-            'help': "Show this help"
+            'help': "Show this help",
+            'show': "Re-print the current event display"
         }
         
         if command not in options:
@@ -74,10 +75,15 @@ class App:
         elif command == 'help':
             self._show_help(options)
             return False
+        elif command == 'show':
+            return True
+        elif command == 'name':
+            return self._change_name()
             
     def display(self):
         main_comp = self._build_main_component()
         print(main_comp)
+        print()
 
     # noinspection PyMethodMayBeStatic
     def input_command(self) -> Optional[str]:
@@ -95,6 +101,13 @@ class App:
         for command in options:
             help_text = options[command]
             print("* {:s} - {:s}".format(command, help_text))
+
+    def _change_name(self) -> bool:
+        """
+        Change the name and return whether it was updated
+
+        :return:
+        """
         
     def _build_main_component(self) -> str:
         left = self._build_main_component_left()
@@ -102,8 +115,7 @@ class App:
         full = format.columns(left, _left_width + 1, right, _right_width + 1, no_lwrap=True)
 
         bar = '-' * TotalWidth
-        full += '\n' + bar
-        return full
+        return bar + '\n' + full + '\n' + bar
 
     def _build_main_component_left(self) -> str:
         left_top = self._build_following_and_universes()
