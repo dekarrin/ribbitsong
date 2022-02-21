@@ -69,16 +69,8 @@ class App:
             return False
             
     def display(self):
-        main_comp = self._build_main_component_left()
-        #col1 = "Hey there man! This is a test series of data that we don't expect to be incorrectly chopped up for,"
-        #col1 += " but we'll see how things turn out. The point of this is to be much longer than the other one and"
-        #col1 += " make sure that still correctly wraps."
-        #col2 = "The second column. Perhaps we would use this one for technical data?"
-
-        #main_comp = format.columns(col2, 7, col1, 40)
-
-        for l in main_comp.split('\n'):
-            print(repr(l))
+        main_comp = self._build_main_component()
+        print(main_comp)
 
     def input_command(self) -> Optional[str]:
         cmd = input("--> ")
@@ -116,22 +108,21 @@ class App:
         
         # get a correct width we can wrap to
         
-        #bot = self._build_inhabitants_component_text()
-        #return top + '\n' + bot
-        return top
-        
+        bot = self._build_inhabitants_component_text()
+        return top + '\n' + bot
+
     def _build_main_component_right(self) -> str:
         return self._build_tags_component_text()
         
     def _build_following_and_universes(self) -> str:
         following = self._build_following_component_text()
-        bar = '-' * _following_and_univ_width
+        bar = '-' * (_following_and_univ_width - 1)
         universes = self._build_universe_component_text()
         return following + '\n' + bar + '\n' + universes
         
     def _build_name_and_description(self) -> str:
         name = self._build_name_component_text()
-        bar = '-' * (_name_and_desc_width - 1)
+        bar = '-' * (_name_and_desc_width - 2)
         desc = self._build_description_component_text()
         return name + '\n' + bar + '\n' + desc
         
