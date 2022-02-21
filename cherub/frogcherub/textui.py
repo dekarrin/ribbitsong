@@ -1,22 +1,29 @@
 # Contains classes for working with the wizahd from the command line
 
-import re
-
 from typing import List, Optional, Dict
 from . import wizahd
 from .events import Event
 from . import format
 
+TotalWidth = 80
+LeftColPercentWidth = 0.25
+RightColPercentWidth = 0.25
 
-_ansi_escape_re = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+# subtract 3 to account for left-right split's separator and padding
+# on both sides
+_usable_total_width = TotalWidth - 3
 
-_total_width = 80
+_left_and_center_col_percent_width = 1.0 - RightColPercentWidth
+_left_width = int(round(_usable_total_width * _left_and_center_col_percent_width))
+_right_width = _usable_total_width - _left_width
 
-_main_left_width = int(_total_width * 0.75)
-_main_right_width = _total_width - _main_left_width
+# subtract 3 to account for following-description split's separator
+_usable_upper_left_width = _left_width - 3
 
-_following_and_univ_width = _main_right_width
-_name_and_desc_width = _main_left_width - _following_and_univ_width
+_left_percent_within_left_main = LeftColPercentWidth * (1.0/_left_and_center_col_percent_width)
+_following_and_univ_width = int(round(_usable_upper_left_width * _left_percent_within_left_main))
+print("{!r} * {!r} = {!r}".format(_usable_upper_left_width, _left_percent_within_left_main, _following_and_univ_width))
+_name_and_desc_width = _usable_upper_left_width - _following_and_univ_width
 
 
 class App:
@@ -72,15 +79,17 @@ class App:
         main_comp = self._build_main_component()
         print(main_comp)
 
+    # noinspection PyMethodMayBeStatic
     def input_command(self) -> Optional[str]:
         cmd = input("--> ")
-        cmd = _ansi_escape_re.sub('', cmd)
+        cmd = format.remove_ansi_escapes(cmd)
         cmd = cmd.strip().lower()
         if cmd == "":
             return None
         else:
             return cmd
-            
+
+    # noinspection PyMethodMayBeStatic
     def _show_help(self, options: Dict[str, str]):
         print("Commands:")
         for command in options:
@@ -90,39 +99,35 @@ class App:
     def _build_main_component(self) -> str:
         left = self._build_main_component_left()
         right = self._build_main_component_right()
-        full = format.columns(left, _main_left_width, right, _main_right_width)
-        
-        lines = full.split('\n')
-        for i in range(len(lines)):
-            lines[i] += '|'
-        full = '\n'.join(lines)
-        bar = '-' * _total_width
+        full = format.columns(left, _left_width + 1, right, _right_width + 1, no_lwrap=True)
+
+        bar = '-' * TotalWidth
         full += '\n' + bar
         return full
-        
+
     def _build_main_component_left(self) -> str:
         left_top = self._build_following_and_universes()
         right_top = self._build_name_and_description()
         
-        top = format.columns(left_top, _following_and_univ_width, right_top, _name_and_desc_width - 1)
-        
-        # get a correct width we can wrap to
-        
+        top = format.columns(left_top, _following_and_univ_width + 1, right_top, _name_and_desc_width + 1)
+
+        bar = '-' * _left_width
         bot = self._build_inhabitants_component_text()
-        return top + '\n' + bot
+        bot = format.wrap(bot, _left_width, extend=True)
+        return top + '\n' + bar + '\n' + bot
 
     def _build_main_component_right(self) -> str:
         return self._build_tags_component_text()
         
     def _build_following_and_universes(self) -> str:
         following = self._build_following_component_text()
-        bar = '-' * (_following_and_univ_width - 1)
+        bar = '-' * _following_and_univ_width
         universes = self._build_universe_component_text()
         return following + '\n' + bar + '\n' + universes
         
     def _build_name_and_description(self) -> str:
         name = self._build_name_component_text()
-        bar = '-' * (_name_and_desc_width - 2)
+        bar = '-' * _name_and_desc_width
         desc = self._build_description_component_text()
         return name + '\n' + bar + '\n' + desc
         
@@ -132,7 +137,7 @@ class App:
             comp += "(Nobody)"
         else:
             comp += self.w.following
-        comp += "\n"
+        comp += "\n\n"
         
         comp += "In:\n"
         if self.w.universe is not None:

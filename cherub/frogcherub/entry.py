@@ -1,6 +1,7 @@
 from typing import Optional, TypeVar, Callable, Dict, List
 
 from .store import Model, FieldValue
+from .format import remove_ansi_escapes
 
 
 _T = TypeVar('_T')
@@ -59,6 +60,7 @@ def get(type_conv: Callable[[str], _T], prompt: Optional[str] = None, allow_blan
             prompt = prompt.rstrip() + " "
             
         raw = input(prompt)
+        raw = remove_ansi_escapes(raw)
         try:
             valid = type_conv(raw)
             if isinstance(valid, str) and valid == "" and not allow_blank:

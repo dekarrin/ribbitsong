@@ -9,6 +9,11 @@ from typing import List
 import re
 
 _space_runs_re = re.compile(r' {2,}')
+_ansi_escape_re = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+
+
+def remove_ansi_escapes(s: str) -> str:
+    return _ansi_escape_re.sub('', s)
 
 
 def wrap(s: str, width: int, extend: bool = False) -> str:
@@ -81,7 +86,9 @@ def columns(
     right_width: int,
     extend_right: bool = True,
     sep: str = '|',
-    sep_padding: int = 1
+    sep_padding: int = 1,
+    no_lwrap: bool = False,
+    no_rwrap: bool = False,
 ) -> str:
     """
     Lay out two columns whose source text is given by left and right.
@@ -98,6 +105,10 @@ def columns(
     and the returned string may have lines of unequal length.
     :param sep: The separator to use for the middle line.
     :param sep_padding: The amount of padding to have from the separator.
+    :param no_lwrap: Disable wrapping for the left column. This may result in inconsistently-sized lines
+    if the left text hasn't already been wrapped.
+    :param no_rwrap: Disable wrapping for the right column. This may result in inconsistently-sized lines
+    if the right text hasn't already been wrapped.
     """
     if left_width - sep_padding < 2:
         raise ValueError("Left width - separator padding is < 2: {!r}".format(left_width - sep_padding))
@@ -107,12 +118,15 @@ def columns(
     left_text_width = left_width - sep_padding
     right_text_width = right_width - sep_padding
 
-    break_test_mode = False
-    if '\n' in left or '\n' in right:
-        break_test_mode = True
+    if no_lwrap:
+        wrapped_left = left
+    else:
+        wrapped_left = wrap(left, left_text_width, extend=True)
 
-    wrapped_left = wrap(left, left_text_width, extend=True)
-    wrapped_right = wrap(right, right_text_width, extend=extend_right)
+    if no_rwrap:
+        wrapped_right = right
+    else:
+        wrapped_right = wrap(right, right_text_width, extend=extend_right)
     
     left_lines = wrapped_left.split('\n')
     right_lines = wrapped_right.split('\n')

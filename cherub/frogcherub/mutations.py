@@ -1,13 +1,10 @@
 import json
-import re
 
-import yaql
-from yaql.language.exceptions import YaqlLexicalException, YaqlGrammarException
+from .format import remove_ansi_escapes
 
 import jsonpath_ng
 from jsonpath_ng.exceptions import JsonPathParserError
 
-_ansi_escape_re = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
 def custom(dataset) -> int:
     total_updated = 0
@@ -19,7 +16,7 @@ def custom(dataset) -> int:
     print("(type \q to quit, \c to cancel mutation)")
     while running:
         query = input("select> ")
-        query = _ansi_escape_re.sub('', query)
+        query = remove_ansi_escapes(query)
         if query == r'\q':
             running = False
             continue
@@ -45,7 +42,7 @@ def custom(dataset) -> int:
         print(output)
         
         mutie = input("MUTATE> ")
-        mutie = _ansi_escape_re.sub('', mutie)
+        mutie = remove_ansi_escapes(mutie)
         if query == r'\q':
             running = False
             continue
@@ -79,6 +76,7 @@ def universe_collapse(dataset) -> int:
     for event in dataset['events']:
         univs = event['universes']
         new_univs = {}
+        needs_updating = False
         
         for u in univs:
             if 'characters' in u:
@@ -117,8 +115,7 @@ def universe_collapse(dataset) -> int:
                     for item in u['items']:
                         if item not in new_loc['items']:
                             new_loc['items'].append(item)
-                            
-                        
+
                 else:
                     if u['name'] not in new_univs:
                         new_univs[u['name']] = {
@@ -176,4 +173,3 @@ def universe_collapse(dataset) -> int:
             event['universes'] = formatted_new_univs
             modified_count += 1
     return modified_count
-    
