@@ -1,9 +1,14 @@
 # Contains classes for working with the wizahd from the command line
 
+import re
+
 from typing import List, Optional, Dict
 from . import wizahd
 from .events import Event
 from . import format
+
+
+_ansi_escape_re = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
 _total_width = 80
 
@@ -64,11 +69,20 @@ class App:
             return False
             
     def display(self):
-        main_comp = self._build_main_component()
-        print(main_comp)
-        
+        main_comp = self._build_main_component_left()
+        #col1 = "Hey there man! This is a test series of data that we don't expect to be incorrectly chopped up for,"
+        #col1 += " but we'll see how things turn out. The point of this is to be much longer than the other one and"
+        #col1 += " make sure that still correctly wraps."
+        #col2 = "The second column. Perhaps we would use this one for technical data?"
+
+        #main_comp = format.columns(col2, 7, col1, 40)
+
+        for l in main_comp.split('\n'):
+            print(repr(l))
+
     def input_command(self) -> Optional[str]:
         cmd = input("--> ")
+        cmd = _ansi_escape_re.sub('', cmd)
         cmd = cmd.strip().lower()
         if cmd == "":
             return None
@@ -102,9 +116,9 @@ class App:
         
         # get a correct width we can wrap to
         
-        bot = self._build_inhabitants_component_text()
-        
-        return top + '\n' + bot
+        #bot = self._build_inhabitants_component_text()
+        #return top + '\n' + bot
+        return top
         
     def _build_main_component_right(self) -> str:
         return self._build_tags_component_text()

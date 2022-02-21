@@ -9,7 +9,7 @@ from typing import List
 import re
 
 _space_runs_re = re.compile(r' {2,}')
-    
+
 
 def wrap(s: str, width: int, extend: bool = False) -> str:
     """
@@ -23,13 +23,10 @@ def wrap(s: str, width: int, extend: bool = False) -> str:
     :param extend: Whether to ensure all lines are the same width, adding spaces to lines
     that are too short to make them the size of width.
     """
-    print()
-    print("wrap(s={!r}, width={!r}, extend={!r})".format(s, width, extend))
     if width < 2:
         raise ValueError("Width must be at least 2 to allow for hyphenation")
         
     if s == '':
-        print("  shortline")
         if extend:
             return ' ' * width
         else:
@@ -37,33 +34,36 @@ def wrap(s: str, width: int, extend: bool = False) -> str:
     
     s = _space_runs_re.sub(' ', s)
 
-    print("  collapsed: {!r}".format(s))
-    
-    lines = list()
-    cur_word = cur_line = ""
-    for ch in s:
-        if ch == ' ':
+    # to properly preserve newlines, we need to run the wrap separately on each
+    # pre-existing line, then combine the results together.
+
+    existing_blocks = s.split('\n')
+    completed_block_lines = list()
+    for block in existing_blocks:
+        lines = list()
+        cur_word = cur_line = ""
+        for ch in block:
+            if ch == ' ':
+                cur_line = _append_word_to_line(lines, cur_word, cur_line, width)
+                cur_word = ""
+            else:
+                cur_word += ch
+
+        if cur_word != "":
             cur_line = _append_word_to_line(lines, cur_word, cur_line, width)
-            cur_word = ""
-        else:
-            cur_word += ch
-            
-    if cur_word != "":
-        cur_line = _append_word_to_line(lines, cur_word, cur_line, width)
-        
-    if cur_line != "":
-        lines.append(cur_line)
+
+        if cur_line != "":
+            lines.append(cur_line)
+
+        completed_block_lines.extend(lines)
         
     if extend:
-        for i, _ in enumerate(lines):
-            print("    lines[{!r}]: {!r}".format(i, lines[i]))
-            needed_width = width - len(lines[i])
-            print("    needed: {:d}".format(needed_width))
+        for i, _ in enumerate(completed_block_lines):
+            needed_width = width - len(completed_block_lines[i])
             if needed_width >= 1:
-                lines[i] += ' ' * needed_width
+                completed_block_lines[i] += ' ' * needed_width
 
-    print("  return: {!s}".format('\n'.join(lines)))
-    return '\n'.join(lines)
+    return '\n'.join(completed_block_lines)
 
 
 def columns(
