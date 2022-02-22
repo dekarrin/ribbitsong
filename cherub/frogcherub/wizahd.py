@@ -274,7 +274,7 @@ class Wizahd:
             tl = self.current_event.get_timeline(address)
             if tl is None:
                 tl = Timeline(path=address.timeline)
-                univ = self.current_event.get_universe(address.universe)
+                univ = self.current_event.get_universe(address)
                 if univ is None:
                     univ = Universe(name=address.universe)
                     self.current_event.universes.append(univ)
@@ -368,6 +368,62 @@ class Wizahd:
         self.current_event.tags.append(enter_tag)
             
         self.updated = True
+
+    def add_item(self, item: str):
+        """
+        Manually add an item to this event.
+
+        :param item: The item to add.
+        """
+        if self._universe is None or self._timeline is None or self._location is None:
+            raise ValueError("Need to follow UTL before adding item")
+
+        if item in self._items:
+            return
+        self._items.append(item)
+        self.current_event.universes[0].timelines[0].locations[0].items.append(item)
+
+    def add_char(self, char: str):
+        """
+        Manually add a character to this event.
+
+        :param char: The char to add.
+        """
+        if self._universe is None or self._timeline is None or self._location is None:
+            raise ValueError("Need to follow UTL before adding char")
+
+        if char in self._chars:
+            return
+        self._chars.append(char)
+        self.current_event.universes[0].timelines[0].locations[0].characters.append(char)
+
+    def remove_item(self, item: str):
+        """
+        Manually remove an item from this event.
+
+        :param item: The item to remove.
+        """
+        if self._universe is None or self._timeline is None or self._location is None:
+            raise ValueError("Need to follow UTL before removing item")
+
+        if item not in self._items:
+            return
+        self._items.remove(item)
+        self.current_event.universes[0].timelines[0].locations[0].items.remove(item)
+
+    def remove_char(self, char: str):
+        """
+        Manually remove a character from this event.
+
+        :param char: The char to remove.
+        """
+        if self._universe is None or self._timeline is None or self._location is None:
+            raise ValueError("Need to follow UTL before removing char")
+
+        if char not in self._chars:
+            return
+        self._chars.remove(char)
+        self.current_event.universes[0].timelines[0].locations[0].characters.remove(char)
         
     def get_last_event(self, location=None, timeline=None, univ=None) -> Event:
         """
@@ -400,6 +456,41 @@ class Wizahd:
                 break
         
         return found_event
+
+    def add_scene(self, location=None, timeline=None, universe=None):
+        """
+        Add a new UTL to the event, without disrupting the current one. If this is the first one to be added,
+        it is immediately set as the currently followed one. Unlike in scene change, it is acceptable to create
+        new upper level UTLs without specifying. The event will not automatically bring in prior event items due
+        to needing to detect if the added scene is possible to do so on.
+
+        :param location: The name of the location to add.
+        :param timeline: The name of the timeline to add.
+        :param universe: The name of the universe to add.
+        """
+        on_current = False
+
+        if universe is None:
+            if self._universe is None:
+                raise ValueError("No current universe so cannot infer it")
+            u = self.current_event.universes[0]
+            on_current = True
+        else:
+            u = self.current_event.get_universe(ParadoxAddress(universe=universe))
+            if u is None:
+                u = Universe(name=universe)
+                self.current_event.universes.append(u)
+            on_current = u.name == self.current_event.universes[0].name
+
+        if universe is not None:
+            u = Universe(name=universe)
+            self.current_event.universes.append(u)
+            if len(self.current_event.universes) == 1:
+                self._universe = u.name
+        if timeline is not None:
+            if self._universe is None:
+                raise ValueError("No current universe; cannot add new timeline")
+
         
     def scene_change(self, new_location, new_timeline=None, new_universe=None, preserve=False):
         """

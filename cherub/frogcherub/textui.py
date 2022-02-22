@@ -72,7 +72,10 @@ class App:
             'exit': "Exit the Wizahd",
             'help': "Show this help",
             'show': "Re-print the current event display",
-            'name': "Re-name the current event"
+            'name': "Re-name the current event",
+            'desc': "Give new description for current event",
+            'add': "Manually add universes and their items to the event",
+            'remove': "Manually remove universes and their contents from the event"
         }
         
         if command not in options:
@@ -90,6 +93,12 @@ class App:
             return True
         elif command == 'name':
             return self._change_name()
+        elif command == 'desc':
+            return self._change_description()
+        elif command == 'add':
+            return self._add()
+        elif command == 'remove':
+            return self._remove()
             
     def display(self):
         main_comp = self._build_main_component()
@@ -113,6 +122,57 @@ class App:
             help_text = options[command]
             print("* {:s} - {:s}".format(command, help_text))
 
+    def _add(self) -> bool:
+        options = ['universe', 'timeline', 'location', 'item', 'char']
+
+        target = input_str("What kind of thing to add").lower()
+        if target not in options:
+            print("Must be one of 'universe', 'timeline', 'location', 'item', or 'char'")
+            return False
+
+        updated, _ = self._perform_add(target)
+        return updated
+
+    def _perform_add(self, target: str):
+        """
+        TODO: Chain add is messed up in cases where one thing is added but a later thing is canceled.
+        This would result in no new display update, but it should.
+
+        :param target:
+        :return:
+        """
+        updated = False
+        if target == 'item' or target == 'char':
+            if self.w.location is None:
+                updated, new_loc = self._perform_add('location')
+                if not updated:
+                    return False
+                self._swap(location=new_loc)
+            name = input_str("Name of {:s}".format(target))
+            if name == "":
+                print("Cancelled adding {:s}".format(target))
+                return False
+            if target == 'item':
+                self.w.add_item(name)
+            elif target == 'char':
+                self.w.add_char(name)
+            else:
+                raise ValueError("should never happen")
+            return True
+        elif target == 'location':
+            if self.w.timeline is None:
+                updated, new_tl = self._perform_add('timeline')
+                if not updated:
+                    return False
+                self._swap(timeline=new_tl)
+            name = input_str("Name of location")
+            if name == "":
+                print("Cancelled adding location")
+                return False
+
+
+
+
     def _change_name(self) -> bool:
         """
         Change the name and return whether it was updated
@@ -126,6 +186,21 @@ class App:
             return False
 
         self.w.name = name
+        return True
+
+    def _change_description(self) -> bool:
+        """
+        Change the description and return whether it was updated.
+
+        :return: Whether it was updated.
+        """
+        desc = input_str("New description")
+
+        if desc == "":
+            print("Description not updated")
+            return False
+
+        self.w.description = desc
         return True
         
     def _build_main_component(self) -> str:
