@@ -468,28 +468,61 @@ class Wizahd:
         :param timeline: The name of the timeline to add.
         :param universe: The name of the universe to add.
         """
-        on_current = False
+
+        new_univ = False
+        new_tl = False
+        new_loc = False
+        u = None
+        t = None
+        l = None
 
         if universe is None:
             if self._universe is None:
                 raise ValueError("No current universe so cannot infer it")
             u = self.current_event.universes[0]
-            on_current = True
         else:
             u = self.current_event.get_universe(ParadoxAddress(universe=universe))
             if u is None:
+                # defer adding to end of func in case somefin else goes wrong
+                new_univ = True
                 u = Universe(name=universe)
-                self.current_event.universes.append(u)
-            on_current = u.name == self.current_event.universes[0].name
 
-        if universe is not None:
-            u = Universe(name=universe)
+        if timeline is None:
+            if self._timeline is None:
+                raise ValueError("No current timeline so cannot infer it")
+
+            if new_univ:
+                t = Timeline(path=self._timeline)
+                new_tl = True
+            else:
+                t = u.timelines[0]
+        else:
+            t = u.get_timeline(timeline)
+            if t is None:
+                # defer adding to end of func in case somefin else goes wrong
+                new_tl = True
+                t = Timeline(path=timeline)
+
+        if location is not None:
+            if t.get_location(location) is None:
+                l = Location(path=location)
+                new_loc = True
+            else:
+                raise ValueError("Location {!s} already exists in timeline {!s}:{!s}".format(location, u.name, t.path))
+
+        if new_loc:
+            t.locations.append(l)
+        if new_tl:
+            u.timelines.append(t)
+        if new_univ:
             self.current_event.universes.append(u)
-            if len(self.current_event.universes) == 1:
-                self._universe = u.name
-        if timeline is not None:
-            if self._universe is None:
-                raise ValueError("No current universe; cannot add new timeline")
+
+    def carry_over_scene(self):
+        """
+        Load all characters and items that were in the current one last.
+        
+        :return:
+        """
 
         
     def scene_change(self, new_location, new_timeline=None, new_universe=None, preserve=False):
