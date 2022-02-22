@@ -13,8 +13,8 @@ class Wizahd:
         self._universe = ""
         self._timeline = ""
         self._location = ""
-        self._items = []
-        self._chars = []
+        self._items = set()
+        self._chars = set()
         
         self._comic_page = 0
         self._work = "homestuck"
@@ -77,7 +77,7 @@ class Wizahd:
 
         char_loc.items.add(item)
         if char_addr.all_indices_equal(0):
-            self._items.append(item)
+            self._items.add(item)
             
         self.updated = True
 
@@ -162,7 +162,7 @@ class Wizahd:
             if result not in char_loc.items and result not in sylladex_results:
                 char_loc.items.add(result)
                 if char_addr.all_indices_equal(0):
-                    self._items.append(result)
+                    self._items.add(result)
             
         self.updated = True
 
@@ -199,7 +199,7 @@ class Wizahd:
             if result not in char_loc.items and result not in sylladex_results:
                 char_loc.items.add(result)
                 if char_addr.all_indices_equal(0):
-                    self._items.append(result)
+                    self._items.add(result)
             
         self.updated = True
 
@@ -282,7 +282,7 @@ class Wizahd:
             tl.locations.append(loc)
         
         if char not in loc.characters:
-            loc.characters.append(char)
+            loc.characters.add(char)
 
         self.current_event.meta.add('convo:' + str(char))
             
@@ -380,8 +380,8 @@ class Wizahd:
 
         if item in self._items:
             return
-        self._items.append(item)
-        self.current_event.universes[0].timelines[0].locations[0].items.append(item)
+        self._items.add(item)
+        self.current_event.universes[0].timelines[0].locations[0].items.add(item)
 
     def add_char(self, char: str):
         """
@@ -394,8 +394,8 @@ class Wizahd:
 
         if char in self._chars:
             return
-        self._chars.append(char)
-        self.current_event.universes[0].timelines[0].locations[0].characters.append(char)
+        self._chars.add(char)
+        self.current_event.universes[0].timelines[0].locations[0].characters.add(char)
 
     def remove_item(self, item: str):
         """
@@ -425,12 +425,22 @@ class Wizahd:
         self._chars.remove(char)
         self.current_event.universes[0].timelines[0].locations[0].characters.remove(char)
         
-    def get_last_event(self, location=None, timeline=None, univ=None) -> Event:
+    def get_last_event(self, address: Optional[ParadoxAddress] = None) -> Event:
         """
         Get the last entered event that occurred at the given locality in paradox space.
         
         :return: The Event that occurred there.
         """
+        location = timeline = univ = None
+
+        if address is not None:
+            if address.location != "":
+                location = address.location
+            if address.timeline != "":
+                timeline = address.timeline
+            if address.universe != "":
+                univ = address.universe
+
         if location is None:
             location = self._location
         if timeline is None:
@@ -461,8 +471,8 @@ class Wizahd:
         """
         Add a new UTL to the event, without disrupting the current one. If this is the first one to be added,
         it is immediately set as the currently followed one. Unlike in scene change, it is acceptable to create
-        new upper level UTLs without specifying. The event will not automatically bring in prior event items due
-        to needing to detect if the added scene is possible to do so on.
+        new upper level UTLs without specifying. The event will automatically bring in prior event items if possible
+        (if as a result the operation a location is selected)
 
         :param location: The name of the location to add.
         :param timeline: The name of the timeline to add.
@@ -516,14 +526,6 @@ class Wizahd:
             u.timelines.append(t)
         if new_univ:
             self.current_event.universes.append(u)
-
-    def carry_over_scene(self):
-        """
-        Load all characters and items that were in the current one last.
-        
-        :return:
-        """
-
         
     def scene_change(self, new_location, new_timeline=None, new_universe=None, preserve=False):
         """
@@ -563,14 +565,16 @@ class Wizahd:
                 cur_location = self.current_event.universes[0].timelines[0].locations[0]
                 self.current_event.universes[0].timelines[0].locations.append(cur_location.copy())
         
-        self._items = list()
-        self._chars = list()
+        self._items = set()
+        self._chars = set()
         
-        last_event = self.get_last_event(new_location, dest_timeline, dest_universe)
+        last_event = self.get_last_event(ParadoxAddress(location=new_location, timeline=dest_timeline, universe=dest_universe))
         if last_event is not None:
             loc_at_end = last_event.scene_at_end(new_location, dest_timeline, dest_universe)
-            self._items = list(loc_at_end.items)
-            self._chars = list(loc_at_end.characters)
+            self._items = set(loc_at_end.items)
+            self._chars = set(loc_at_end.characters)
+            self.current_event.universes[0].timelines[0].locations[0].characters.extend(loc_at_end.characters)
+            self.current_event.universes[0].timelines[0].locations[0].items.extend(loc_at_end.items)
         
         self._location = new_location
         self.current_event.universes[0].timelines[0].locations[0].path = new_location
@@ -609,16 +613,16 @@ class Wizahd:
         self._universe = None
         self._timeline = None
         self._location = None
-        self._items = list()
-        self._chars = list()
+        self._items = set()
+        self._chars = set()
         if len(event.universes) > 0:
             self._universe = event.universes[0].name
             if len(event.universes[0].timelines) > 0:
                 self._timeline = event.universes[0].timelines[0].path
                 if len(event.universes[0].timelines[0].locations) > 0:
                     self._location = event.universes[0].timelines[0].locations[0].path
-                    self._items = list(event.universes[0].timelines[0].locations[0].items)
-                    self._chars = list(event.universes[0].timelines[0].locations[0].characters)
+                    self._items = set(event.universes[0].timelines[0].locations[0].items)
+                    self._chars = set(event.universes[0].timelines[0].locations[0].characters)
 
         if "convo" in event.meta:
             for m in event.meta:

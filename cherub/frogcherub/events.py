@@ -1159,8 +1159,8 @@ class Location:
     """
     def __init__(self, **kwargs):
         self.path = kwargs.get('path', "")
-        self.characters = list(kwargs.get('characters', list()))
-        self.items = list(kwargs.get('items', list()))
+        self.characters = set(kwargs.get('characters', list()))
+        self.items = set(kwargs.get('items', list()))
 
     def copy(self) -> 'Location':
         return Location(path=self.path, items=self.items, characters=self.characters)
@@ -1188,8 +1188,8 @@ class Location:
     def to_dict(self) -> Dict:
         d = {
             'path': self.path,
-            'characters': self.characters,
-            'items': self.items
+            'characters': list(self.characters),
+            'items': list(self.items)
         }
         return d
 
