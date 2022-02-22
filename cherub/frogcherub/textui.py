@@ -71,7 +71,8 @@ class App:
         options = {
             'exit': "Exit the Wizahd",
             'help': "Show this help",
-            'show': "Re-print the current event display"
+            'show': "Re-print the current event display",
+            'name': "Re-name the current event"
         }
         
         if command not in options:
@@ -118,6 +119,14 @@ class App:
 
         :return:
         """
+        name = input_str("New name")
+
+        if name == "":
+            print("Name not updated")
+            return False
+
+        self.w.name = name
+        return True
         
     def _build_main_component(self) -> str:
         left = self._build_main_component_left()
