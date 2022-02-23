@@ -1,5 +1,5 @@
 import uuid
-from typing import Optional, Dict, List, Set
+from typing import Optional, Dict, List, Set, Union
 
 
 class ParadoxAddress:
@@ -32,6 +32,24 @@ class ParadoxAddress:
             timeline_index=self.timeline_index,
             location_index=self.location_index
         )
+
+    def has_universe(self) -> bool:
+        """
+        Return whether this ParadoxAddress contains either an index or a name for a universe.
+        """
+        return self.universe != "" or self.universe_index > -1
+
+    def has_timeline(self) -> bool:
+        """
+        Return whether this ParadoxAddress contains either an index or a name for a timeline.
+        """
+        return self.timeline != "" or self.timeline_index > -1
+
+    def has_location(self) -> bool:
+        """
+        Return whether this ParadoxAddress contains either an index or a name for a location.
+        """
+        return self.location != "" or self.location_index > -1
         
     def __eq__(self, other) -> bool:
         if not isinstance(other, ParadoxAddress):
@@ -1262,6 +1280,20 @@ class Timeline:
                     return loc
             return None
 
+    def index_of_location(self, location: Union[ParadoxAddress, str]) -> int:
+        """Return the index of the given location.
+
+        :param location: Either the name of the location to find or a ParadoxAddress containing the location name.
+        """
+        if isinstance(location, ParadoxAddress):
+            location = location.universe
+        location = str(location)
+
+        for idx, loc in enumerate(self.locations):
+            if loc.path == location:
+                return idx
+        return -1
+
     def has_location(self, location: str, index: int = -1) -> bool:
         """Return whether a location with the given properties is present.
 
@@ -1343,6 +1375,20 @@ class Universe:
                 if tl.path == timeline:
                     return tl
             return None
+
+    def index_of_timeline(self, timeline: Union[ParadoxAddress, str]) -> int:
+        """Return the index of the given timeline.
+
+        :param timeline: Either the name of the timeline to find or a ParadoxAddress containing the timeline name.
+        """
+        if isinstance(timeline, ParadoxAddress):
+            timeline = timeline.universe
+        timeline = str(timeline)
+
+        for idx, tl in enumerate(self.timelines):
+            if tl.path == timeline:
+                return idx
+        return -1
 
     def has_timeline(self, timeline: str, index: int = -1) -> bool:
         """Return whether a timeline with the given properties is present.
@@ -1582,6 +1628,20 @@ class Event:
                 if u.name == address.universe:
                     return True
             return False
+
+    def index_of_universe(self, univ: Union[ParadoxAddress, str]) -> int:
+        """Return the index of the given universe.
+
+        :param univ: Either the name of the universe to find or a ParadoxAddress containing the universe name.
+        """
+        if isinstance(univ, ParadoxAddress):
+            univ = univ.universe
+        univ = str(univ)
+
+        for idx, u in enumerate(self.universes):
+            if u.name == univ:
+                return idx
+        return -1
         
     def get_timeline(self, address: ParadoxAddress) -> Optional[Timeline]:
         """

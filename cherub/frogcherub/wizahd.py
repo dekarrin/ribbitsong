@@ -539,7 +539,71 @@ class Wizahd:
             self._chars = set(loc_at_end.characters)
             self.current_event.universes[0].timelines[0].locations[0].characters.extend(loc_at_end.characters)
             self.current_event.universes[0].timelines[0].locations[0].items.extend(loc_at_end.items)
-        
+
+    def swap_scene(self, address: ParadoxAddress):
+        address = address.copy()
+
+        update_universe = update_timeline = update_location = None
+
+        univ = None
+        tl = None
+        loc = None
+
+        if address.has_universe():
+            if address.universe_index < 0:
+                # we need to do a search to get the new one
+                idx = self.current_event.index_of_universe(address)
+                if idx < 0:
+                    raise ValueError("Universe {!r} does not exist".format(address.universe))
+                address.universe_index = idx
+            univ = self.current_event.get_universe(address)
+            update_universe = address.universe_index != 0
+        else:
+            univ = self.current_event.universes[0]
+            address.universe_index = 0
+            address.universe = univ.name
+
+        if address.has_timeline():
+            if address.timeline_index < 0:
+                # we need to do a search to get the new one
+                idx = univ.index_of_timeline(address)
+                if idx < 0:
+                    raise ValueError("Timeline {!r} does not exist".format(address.timeline))
+                address.timeline_index = idx
+            tl = univ.get_timeline(address.timeline, address.timeline_index)
+            update_timeline = address.timeline_index != 0
+        else:
+            tl = univ.timelines[0]
+            address.timeline_index = 0
+            address.timeline = tl.path
+
+        if address.has_location():
+            if address.location_index < 0:
+                # we need to do a search to get the new one
+                idx = tl.index_of_location(address)
+                if idx < 0:
+                    raise ValueError("Location {!r} does not exist".format(address.location))
+                address.location_index = idx
+            loc = tl.get_location(address.location, address.location_index)
+            update_location = address.location_index != 0
+        else:
+            loc = tl.locations[0]
+            address.location_index = 0
+            address.location = loc.path
+
+        if update_universe:
+            del self.current_event.universes[address.universe_index]
+            self.current_event.universes.insert(0, univ)
+            self._universe = address.universe
+        if update_timeline:
+            del univ.timelines[address.timeline_index]
+            univ.timelines.insert(0, tl)
+            self._timeline = address.timeline
+        if update_location:
+            del tl.locations[address.location_index]
+            tl.locations.insert(0, loc)
+            self._location = address.location
+
     def scene_change(self, new_location, new_timeline=None, new_universe=None, preserve=False):
         """
         Completely wipe out the current event's scene and replace it with a new one, with default

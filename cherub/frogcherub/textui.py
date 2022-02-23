@@ -75,7 +75,9 @@ class App:
             'name': "Re-name the current event",
             'desc': "Give new description for current event",
             'add': "Manually add universes and their items to the event",
-            'remove': "Manually remove universes and their contents from the event"
+            'remove': "Manually remove universes and their contents from the event",
+            'swap': "Switch to a different UTL. The followed char does not come with",
+            'home': "Return to the UTL that the followed character is in"
         }
         
         if command not in options:
@@ -205,6 +207,102 @@ class App:
         else:
             raise ValueError("should never happen")
 
+    def _remove(self) -> bool:
+        options = ['universe', 'timeline', 'location', 'item', 'char']
+
+        target = input_str("What kind of thing to remove").lower()
+        if target not in options:
+            print("Must be one of 'universe', 'timeline', 'location', 'item', or 'char'")
+            return False
+
+        if target == 'item' or target == 'char':
+            if self.w.location is None:
+                print("Not yet following a location. Add one before removing things from it.")
+                return False
+            name = input_str("Name of {:s}".format(target))
+            if name == "":
+                print("Cancelled removing {:s}".format(target))
+                return False
+            if target == 'item':
+                self.w.remove_item(name)
+            elif target == 'char':
+                self.w.remove_char(name)
+            else:
+                raise ValueError("should never happen")
+            return True
+        elif target == 'location':
+            if self.w.timeline is None:
+                print("Not yet following a timeline. Add one before removing things from it.")
+                return False
+            name = input_str("Name of location")
+            if name == "":
+                print("Cancelled removing location")
+                return False
+            addr = ParadoxAddress(location=name)
+            if not self.w.current_event.has_location(addr):
+                print("That location doesn't exist")
+                return False
+            idx = self.w.current_event.universes[0].timelines[0].index_of_location(name)
+            loc = self.w.current_event.universes[0].timelines[0].locations[idx]
+            if len(loc.characters) > 0 or len(loc.items) > 0:
+                if not entry.confirm("This location has items/chars, which will also be deleted. Proceed?"):
+                    print("Cancelled removing location")
+                    return False
+            del self.w.current_event.universes[0].timelines[0].locations[idx]
+            return True
+        elif target == 'timeline':
+            if self.w.universe is None:
+                print("Not yet following a universe. Add one before removing things from it.")
+                return False
+            name = input_str("Name of timeline")
+            if name == "":
+                print("Cancelled removing timeline")
+                return False
+            addr = ParadoxAddress(timeline=name)
+            if not self.w.current_event.has_timeline(addr):
+                print("That timeline doesn't exist")
+                return False
+            idx = self.w.current_event.universes[0].index_of_timeline(name)
+            if len(self.w.current_event.universes[0].timelines[idx].locations) > 0:
+                if not entry.confirm("This timeline has locations, which will also be deleted. Proceed?"):
+                    print("Cancelled removing timeline")
+                    return False
+            del self.w.current_event.universes[0].timelines[0].locations[idx]
+            return True
+        elif target == 'universe':
+            name = input_str("Name of universe")
+            if name == "":
+                print("Cancelled removing universe")
+                return False
+            addr = ParadoxAddress(universe=name)
+            if not self.w.current_event.has_universe(addr):
+                print("That universe doesn't exist")
+                return False
+            idx = self.w.current_event.index_of_universe(name)
+            if len(self.w.current_event.universes[idx].timelines) > 0:
+                if not entry.confirm("This universe has timelines, which will also be deleted. Proceed?"):
+                    print("Cancelled removing universe")
+                    return False
+            del self.w.current_event.universes[0].timelines[0].locations[idx]
+            return True
+        else:
+            raise ValueError("should never happen")
+
+    def _swap(self, location: Optional[str] = None, timeline: Optional[str] = None, universe: Optional[str] = None):
+        """Change the current UTL."""
+        if universe is None and timeline is None and location is None:
+            # nothing to do
+            return
+
+        addr = ParadoxAddress()
+        if location is not None:
+            addr.location = location
+        if timeline is not None:
+            addr.timeline = timeline
+        if universe is not None:
+            addr.universe_index = universe
+
+        self.w.swap_scene(addr)
 
 
     def _change_name(self) -> bool:
