@@ -526,6 +526,19 @@ class Wizahd:
             u.timelines.append(t)
         if new_univ:
             self.current_event.universes.append(u)
+
+    def carry_over_scene(self, address: ParadoxAddress):
+        scene = self.current_event.get_location(address)
+        if scene is None:
+            raise ValueError("Scene does not yet exist in this event: {!r}".format(address))
+
+        last_event = self.get_last_event(address)
+        if last_event is not None:
+            loc_at_end = last_event.scene_at_end(address)
+            self._items = set(loc_at_end.items)
+            self._chars = set(loc_at_end.characters)
+            self.current_event.universes[0].timelines[0].locations[0].characters.extend(loc_at_end.characters)
+            self.current_event.universes[0].timelines[0].locations[0].items.extend(loc_at_end.items)
         
     def scene_change(self, new_location, new_timeline=None, new_universe=None, preserve=False):
         """
@@ -567,14 +580,9 @@ class Wizahd:
         
         self._items = set()
         self._chars = set()
-        
-        last_event = self.get_last_event(ParadoxAddress(location=new_location, timeline=dest_timeline, universe=dest_universe))
-        if last_event is not None:
-            loc_at_end = last_event.scene_at_end(new_location, dest_timeline, dest_universe)
-            self._items = set(loc_at_end.items)
-            self._chars = set(loc_at_end.characters)
-            self.current_event.universes[0].timelines[0].locations[0].characters.extend(loc_at_end.characters)
-            self.current_event.universes[0].timelines[0].locations[0].items.extend(loc_at_end.items)
+
+        dest_address = ParadoxAddress(location=new_location, timeline=dest_timeline, universe=dest_universe)
+        self.carry_over_scene(dest_address)
         
         self._location = new_location
         self.current_event.universes[0].timelines[0].locations[0].path = new_location

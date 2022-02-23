@@ -37,16 +37,44 @@ class ParadoxAddress:
         if not isinstance(other, ParadoxAddress):
             return False
             
-        self_tuple = (self.universe, self.timeline, self.location, self.universe_index, self.timeline_index, self.location_index)
-        other_tuple = (other.universe, other.timeline, other.location, other.universe_index, other.timeline_index, other.location_index)
+        self_tuple = (
+            self.universe,
+            self.timeline,
+            self.location,
+            self.universe_index,
+            self.timeline_index,
+            self.location_index
+        )
+        other_tuple = (
+            other.universe,
+            other.timeline,
+            other.location,
+            other.universe_index,
+            other.timeline_index,
+            other.location_index
+        )
         return self_tuple == other_tuple
         
     def __hash__(self) -> int:
-        return hash((self.universe, self.timeline, self.location, self.universe_index, self.timeline_index, self.location_index))
+        return hash((
+            self.universe,
+            self.timeline,
+            self.location,
+            self.universe_index,
+            self.timeline_index,
+            self.location_index
+        ))
         
     def __str__(self) -> str:
         fmt = "<{:s}({:d}):{:s}({:d}):{:s}({:d})>"
-        return fmt.format(self.universe, self.universe_index, self.timeline, self.timeline_index, self.location, self.location_index)
+        return fmt.format(
+            self.universe,
+            self.universe_index,
+            self.timeline,
+            self.timeline_index,
+            self.location,
+            self.location_index
+        )
 
     def all_indices_equal(self, value) -> bool:
         return self.location_index == self.timeline_index == self.universe_index == value
@@ -1088,13 +1116,15 @@ class Tag:
     @property
     def opposite_port_event(self) -> str:
         if self.type not in ['char_ports_in', 'char_ports_out']:
-            raise NotImplementedError("{!r}-type constraints do not have an opposite_port_event property".format(self.type))
+            msg = "{!r}-type constraints do not have an opposite_port_event property"
+            raise NotImplementedError(msg.format(self.type))
         return self._opposite_port_event
 
     @opposite_port_event.setter
     def opposite_port_event(self, value: str):
         if self.type not in ['char_ports_in', 'char_ports_out']:
-            raise NotImplementedError("{!r}-type constraints do not have an opposite_port_event property".format(self.type))
+            msg = "{!r}-type constraints do not have an opposite_port_event property"
+            raise NotImplementedError(msg.format(self.type))
         self._opposite_port_event = value
 
     @property
@@ -1232,6 +1262,25 @@ class Timeline:
                     return loc
             return None
 
+    def has_location(self, location: str, index: int = -1) -> bool:
+        """Return whether a location with the given properties is present.
+
+        :param location: The name of the location to match. If left blank, only 'index' is used for matching.
+        :param index: The index of the location to check for. If left blank, only 'location' is used for matching.
+        :return: Whether the given locations is present.
+        """
+        if index >= 0:
+            if index >= len(self.locations):
+                return False
+            if location != "":
+                return self.locations[index].path == location
+            return True
+        else:
+            for loc in self.locations:
+                if loc.path == location:
+                    return True
+            return False
+
     def __eq__(self, other) -> bool:
         if not isinstance(other, Timeline):
             return False
@@ -1294,6 +1343,25 @@ class Universe:
                 if tl.path == timeline:
                     return tl
             return None
+
+    def has_timeline(self, timeline: str, index: int = -1) -> bool:
+        """Return whether a timeline with the given properties is present.
+
+        :param timeline: The name of the timeline to match. If left blank, only 'index' is used for matching.
+        :param index: The index of the timeline to check for. If left blank, only 'timeline' is used for matching.
+        :return: Whether the given timeline is present.
+        """
+        if index >= 0:
+            if index >= len(self.timelines):
+                return False
+            if timeline != "":
+                return self.timelines[index].path == timeline
+            return True
+        else:
+            for t in self.timelines:
+                if t.path == timeline:
+                    return True
+            return False
 
     def __eq__(self, other) -> bool:
         if not isinstance(other, Universe):
@@ -1364,56 +1432,41 @@ class Event:
                 u = Universe.from_dict(u)
             self.universes.append(u)
             
-    def scene_at_end(
-        self,
-        location: Optional[str] = None,
-        timeline: Optional[str] = None,
-        universe: Optional[str] = None,
-    ) -> Location:
+    def scene_at_end(self, address: ParadoxAddress) -> Location:
         """
         Give what the requested location looks like as a result of playing
         back all event tags present on this event.
-        
-        :param location: The path of the location to get. If none given, the first one in the selected timeline is used.
-        :param timeline: The path of the timeline to get. If none given, the first one in the selected universe is used.
-        :param universe: The name of the universe to get. If none given, the first one is used.
+
+        :param address: Contains the address of the scene to get. Defaults are present for each.
+
+        For location, if none given, the first one in the selected timeline is used.
+        For timeline, if none given, the first one in the selected universe is used.
+        For universe, if none given, the first one in the event is used.
+
         :return: A Location that contains the items and characters that remain after all
         event tags have run.
         """
-        univ_idx = 0
-        if universe is not None:
-            found = False
-            for idx, univ in enumerate(self.universes):
-                if univ.name == universe:
-                    univ_idx = idx
-                    found = True
-                    break
-            if not found:
-                raise ValueError("event does not occur in universe with name {!r}".format(universe))
-        target_univ = self.universes[univ_idx]
-                
-        tl_idx = 0
-        if timeline is not None:
-            found = False
-            for idx, tl in enumerate(target_univ.timelines):
-                if tl.path == timeline:
-                    tl_idx = idx
-                    found = True
-                    break
-            if not found:
-                raise ValueError("event does not occur in timeline with name {!r}".format(timeline))
-        target_tl = target_univ.timelines[tl_idx]
-        
-        loc_idx = 0
-        if location is not None:
-            found = False
-            for idx, loc in enumerate(target_tl.locations):
-                if loc.path == location:
-                    loc_idx = idx
-                    found = True
-            if not found:
-                raise ValueError("event does not occur in location with name {!r}".format(location))
-        target_loc = target_tl.locations[loc_idx]
+        address = address.copy()
+
+        if address.universe == "" and address.universe_index == -1:
+            address.universe_index = 0
+        if address.timeline == "" and address.timeline_index == -1:
+            address.timeline_index = 0
+        if address.location == "" and address.location_index == -1:
+            address.location_index = 0
+
+        target_univ = self.get_universe(address)
+        if target_univ is None:
+            msg = "event does not occur in universe {!r}({:d})"
+            raise ValueError(msg.format(address.universe, address.universe_index))
+        target_timeline = target_univ.get_timeline(address.timeline, address.timeline_index)
+        if target_timeline is None:
+            msg = "event does not occur in timeline {!r}({:d})"
+            raise ValueError(msg.format(address.timeline, address.timeline_index))
+        target_loc = target_timeline.get_location(address.location, address.location_index)
+        if target_loc is None:
+            msg = "event does not occur in location {!r}({:d})"
+            raise ValueError(msg.format(address.location, address.location_index))
         
         end_items = set(target_loc.items)
         end_chars = set(target_loc.characters)
@@ -1507,6 +1560,28 @@ class Event:
                 if u.name == address.universe:
                     return u
             return None
+
+    def has_universe(self, address: ParadoxAddress) -> bool:
+        """
+        Return whether a universe exists in this Event.
+        :param address: The address of the universe. Must contain `universe` or `universe_index`. If it has only
+        universe, this function will check to see if a universe with the given name is present. If it has only
+        universe_index, this function will check to see if a universe with that index is present. If it has both,
+        this function will check whether there is a universe present with that index that has the same name.
+
+        :return: Whether the given Universe is present in this event.
+        """
+        if address.universe_index >= 0:
+            if address.universe_index >= len(self.universes):
+                return False
+            if address.universe != "":
+                return self.universes[address.universe_index].name == address.universe
+            return True
+        else:
+            for u in self.universes:
+                if u.name == address.universe:
+                    return True
+            return False
         
     def get_timeline(self, address: ParadoxAddress) -> Optional[Timeline]:
         """
@@ -1519,6 +1594,30 @@ class Event:
         if univ is None:
             return None
         return univ.get_timeline(address.timeline, address.timeline_index)
+
+    def has_timeline(self, address: ParadoxAddress) -> bool:
+        """
+        Return whether a timline exists in this Event.
+        :param address: The address of the timeline. Must contain `timeline` or `timeline_index`. If it has only
+        timeline, this function will check to see if a timeline with the given name is present. If it has only
+        timeline, this function will check to see if a timeline with that index is present. If it has both,
+        this function will check whether there is a timeline present with that index that has the same name.
+
+        This parameter is also used to get the parent universe. See the docs on get_universe() for which properties of
+        the address are required. If none is specified, the universe with index 0 is used.
+
+        :return: Whether the given Timeline is present in this event.
+        """
+        if address.universe == "" and address.universe_index == -1:
+            address = address.copy()
+            address.universe_index = 0
+
+        univ = self.get_universe(address)
+        if univ is None:
+            return False
+        if address.universe != "" and univ.name != address.universe:
+            return False
+        return univ.has_timeline(address.timeline, address.timeline_index)
         
     def get_location(self, address: ParadoxAddress) -> Optional[Location]:
         """
@@ -1531,6 +1630,30 @@ class Event:
         if tl is None:
             return None
         return tl.get_location(address.location, address.location_index)
+
+    def has_location(self, address: ParadoxAddress) -> bool:
+        """
+        Return whether a location exists in this Event.
+        :param address: The address of the location. Must contain `location` or `location_index`. If it has only
+        location, this function will check to see if a location with the given name is present. If it has only
+        location_index, this function will check to see if a location with that index is present. If it has both,
+        this function will check whether there is a location present with that index that has the same name.
+
+        This parameter is also used to get the parent timeline. See the docs on get_timeline() for which properties of
+        the address are required. If none is specified, the timeline with index 0 is used.
+
+        :return: Whether the given Location is present in this event.
+        """
+        if address.timeline == "" and address.timeline_index == -1:
+            address = address.copy()
+            address.timeline_index = 0
+
+        t = self.get_timeline(address)
+        if t is None:
+            return False
+        if address.timeline != "" and t.path != address.timeline:
+            return False
+        return t.has_location(address.location, address.location_index)
 
     def copy(self) -> 'Event':
         return Event.from_dict(self.to_dict())

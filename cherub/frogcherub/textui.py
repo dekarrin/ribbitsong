@@ -1,8 +1,8 @@
 # Contains classes for working with the wizahd from the command line
 
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any, Tuple
 from . import wizahd, entry
-from .events import Event
+from .events import Event, ParadoxAddress
 from . import format
 
 TotalWidth = 80
@@ -133,7 +133,7 @@ class App:
         updated, _ = self._perform_add(target)
         return updated
 
-    def _perform_add(self, target: str):
+    def _perform_add(self, target: str) -> Tuple[bool, Any]:
         """
         TODO: Chain add is messed up in cases where one thing is added but a later thing is canceled.
         This would result in no new display update, but it should.
@@ -146,30 +146,64 @@ class App:
             if self.w.location is None:
                 updated, new_loc = self._perform_add('location')
                 if not updated:
-                    return False
+                    return False, None
                 self._swap(location=new_loc)
             name = input_str("Name of {:s}".format(target))
             if name == "":
                 print("Cancelled adding {:s}".format(target))
-                return False
+                return False, None
             if target == 'item':
                 self.w.add_item(name)
             elif target == 'char':
                 self.w.add_char(name)
             else:
                 raise ValueError("should never happen")
-            return True
+            return True, name
         elif target == 'location':
             if self.w.timeline is None:
                 updated, new_tl = self._perform_add('timeline')
                 if not updated:
-                    return False
+                    return False, None
                 self._swap(timeline=new_tl)
             name = input_str("Name of location")
             if name == "":
                 print("Cancelled adding location")
-                return False
-
+                return False, None
+            addr = ParadoxAddress(location=name)
+            if self.w.current_event.has_location(addr):
+                print("That location already exists")
+                return False, None
+            self.w.add_scene(location=name)
+            return True, name
+        elif target == 'timeline':
+            if self.w.universe is None:
+                updated, new_univ = self._perform_add('universe')
+                if not updated:
+                    return False, None
+                self._swap(universe=new_univ)
+            name = input_str("Name of timeline")
+            if name == "":
+                print("Cancelled adding timeline")
+                return False, None
+            addr = ParadoxAddress(location=name)
+            if self.w.current_event.has_timeline(addr):
+                print("That timeline already exists")
+                return False, None
+            self.w.add_scene(timeline=name)
+            return True, name
+        elif target == 'universe':
+            name = input_str("Name of universe")
+            if name == "":
+                print("Cancelled adding universe")
+                return False, None
+            addr = ParadoxAddress(universe=name)
+            if self.w.current_event.has_universe(addr):
+                print("That universe already exists")
+                return False, None
+            self.w.add_scene(universe=name)
+            return True, name
+        else:
+            raise ValueError("should never happen")
 
 
 
