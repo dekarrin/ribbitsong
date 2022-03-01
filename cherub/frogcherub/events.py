@@ -1,5 +1,6 @@
 import uuid
 from typing import Optional, Dict, List, Set, Union
+from .format import pretty_sequence
 
 
 class ParadoxAddress:
@@ -1210,6 +1211,16 @@ class Location:
         self.characters = set(kwargs.get('characters', list()))
         self.items = set(kwargs.get('items', list()))
 
+    def pretty_str(self, tabs=0) -> str:
+        leading = '  ' * tabs
+
+        s = 'Location<\n'
+        s += leading + '  path: {!s}'.format(self.path)
+        s += pretty_sequence("characters", self.characters, tabs+1) + "\n"
+        s += pretty_sequence("items", self.items, tabs+1) + "\n"
+        s += leading + '>'
+        return s
+
     def copy(self) -> 'Location':
         return Location(path=self.path, items=self.items, characters=self.characters)
 
@@ -1259,6 +1270,15 @@ class Timeline:
             if isinstance(loc, dict):
                 loc = Location.from_dict(loc)
             self.locations.append(loc)
+
+    def pretty_str(self, tabs=0) -> str:
+        leading = '  ' * tabs
+
+        s = 'Timeline<\n'
+        s += leading + '  path: {!s}'.format(self.path)
+        s += pretty_sequence("locations", self.locations, tabs+1) + "\n"
+        s += leading + '>'
+        return s
 
     def copy(self) -> 'Timeline':
         return Timeline(path=self.path, locations=self.locations)
@@ -1355,6 +1375,15 @@ class Universe:
             if isinstance(tl, dict):
                 tl = Timeline.from_dict(tl)
             self.timelines.append(tl)
+
+    def pretty_str(self, tabs=0) -> str:
+        leading = '  ' * tabs
+
+        s = 'Universe<\n'
+        s += leading + '  name: {!s}\n'.format(self.name)
+        s += pretty_sequence("timelines", self.timelines, tabs+1) + "\n"
+        s += leading + '>'
+        return s
 
     def copy(self) -> 'Universe':
         return Universe(name=self.name, timelines=self.timelines)
@@ -1477,6 +1506,22 @@ class Event:
             if isinstance(u, dict):
                 u = Universe.from_dict(u)
             self.universes.append(u)
+
+    def pretty_str(self, tabs=0) -> str:
+        leading = '  ' * tabs
+        s = 'Event<' + '\n'
+        s += leading + '  id: {:s}\n'.format(self.id)
+        s += leading + '  name: {:s}\n'.format(self.name)
+        s += leading + '  description: {:s}\n'.format(self.description)
+        s += leading + '  portrayed_in: {!s}\n'.format(self.portrayed_in)
+
+        s += pretty_sequence("citations", self.constraints, tabs+1) + '\n'
+        s += pretty_sequence("constraints", self.constraints, tabs+1) + '\n'
+        s += pretty_sequence("tags", self.tags, tabs+1) + '\n'
+        s += pretty_sequence("universes", self.universes, tabs+1) + '\n'
+        s += pretty_sequence("meta", self.meta, tabs+1) + '\n'
+        s += leading + '>'
+        return s
             
     def scene_at_end(self, address: ParadoxAddress) -> Location:
         """

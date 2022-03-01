@@ -77,7 +77,9 @@ class App:
             'add': "Manually add universes and their items to the event",
             'remove': "Manually remove universes and their contents from the event",
             'swap': "Switch to a different UTL. The followed char does not come with",
-            'home': "Return to the UTL that the followed character is in"
+            'home': "Return to the UTL that the followed character is in",
+            'follow': "Set the current narrative main character",
+            "debug-wizahd": "Get a full print-out of the wizahd"
         }
         
         if command not in options:
@@ -101,6 +103,14 @@ class App:
             return self._add()
         elif command == 'remove':
             return self._remove()
+        elif command == 'swap':
+            return self._prompt_for_utl_swap()
+        elif command == 'home':
+            return self._swap_home()
+        elif command == 'follow':
+            return self._follow()
+        elif command == 'debug-wizahd':
+            return self._debug_wizahd()
             
     def display(self):
         main_comp = self._build_main_component()
@@ -116,6 +126,78 @@ class App:
             return None
         else:
             return cmd
+
+    def _debug_wizahd(self) -> bool:
+        print(self.w.pretty_str())
+        return False
+
+    def _follow(self) -> bool:
+        if not self.w.universe or not self.w.timeline or not self.w.location:
+            print("Need to set UTL before attempting to follow character")
+            return False
+
+        to_follow = input_str("Character to follow")
+        if to_follow == "":
+            print("Cancelled following character")
+            return False
+
+        if to_follow not in self.w.characters:
+            print("{!r} is not a character present in the current UTL".format(to_follow))
+            return False
+
+        self.w.following = to_follow
+        return True
+
+    def _swap_home(self) -> bool:
+        if not self.w.following:
+            print("Follower not yet set; do 'follow' before attempting to swap back to home UTL")
+            return False
+
+        addr = self.w.current_event.address_of(self.w.following)
+        self._swap(address=addr)
+        return True
+
+    def _prompt_for_utl_swap(self) -> bool:
+        type_requested = input_str("U/T/L (at least one)")
+        if type_requested == "":
+            print("Cancelled UTL swap")
+            return False
+
+        prompt_for_univ = prompt_for_tl = prompt_for_loc = False
+        new_loc = new_tl = new_univ = None
+
+        for ch in type_requested.lower().replace(' ', ''):
+            if ch not in 'utl':
+                print("Enter some combination of the letters 'U', 'T', and 'L'")
+                return False
+            if ch == 'u':
+                prompt_for_univ = True
+            if ch == 't':
+                prompt_for_tl = True
+            if ch == 'l':
+                prompt_for_loc = True
+
+        if prompt_for_univ:
+            new_univ = input_str("Universe")
+            if new_univ == "":
+                print("Cancelled UTL swap")
+                return False
+
+        if prompt_for_tl:
+            new_tl = input_str("Timeline")
+            if new_tl == "":
+                print("Cancelled UTL swap")
+                return False
+
+        if prompt_for_loc:
+            new_loc = input_str("Location")
+            if new_loc == "":
+                print("Cancelled UTL swap")
+                return False
+
+        self._swap(location=new_loc, timeline=new_tl, universe=new_univ)
+        return True
+
 
     # noinspection PyMethodMayBeStatic
     def _show_help(self, options: Dict[str, str]):
@@ -143,7 +225,6 @@ class App:
         :param target:
         :return:
         """
-        updated = False
         if target == 'item' or target == 'char':
             if self.w.location is None:
                 updated, new_loc = self._perform_add('location')
@@ -288,8 +369,16 @@ class App:
         else:
             raise ValueError("should never happen")
 
-    def _swap(self, location: Optional[str] = None, timeline: Optional[str] = None, universe: Optional[str] = None):
+    def _swap(self, location: Optional[str] = None, timeline: Optional[str] = None, universe: Optional[str] = None, address: Optional[ParadoxAddress] = None):
         """Change the current UTL."""
+        if address:
+            if address.universe != "":
+                universe = address.universe
+            if address.timeline != "":
+                timeline = address.timeline
+            if address.location != "":
+                location = address.location
+
         if universe is None and timeline is None and location is None:
             # nothing to do
             return
@@ -303,7 +392,6 @@ class App:
             addr.universe_index = universe
 
         self.w.swap_scene(addr)
-
 
     def _change_name(self) -> bool:
         """

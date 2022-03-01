@@ -1,5 +1,6 @@
 from .events import Event, Tag, Citation, Constraint, Universe, Timeline, Location, ParadoxAddress
 
+from .format import pretty_sequence
 from typing import List, Optional
 
 
@@ -30,6 +31,25 @@ class Wizahd:
             self._events.append(new_event)
 
         self.goto(len(self._events) - 1)
+
+    def pretty_str(self, tabs=0) -> str:
+        leading = '  ' * tabs
+        s = 'Wizahd<\n'
+        s += leading + '  updated: {:s}'.format(str(self.updated)) + '\n'
+        s += leading + '  _cursor: {:d}'.format(self._cursor) + '\n'
+        s += leading + '  _universe: {:s}'.format(str(self._universe)) + '\n'
+        s += leading + '  _timeline: {:s}'.format(str(self._timeline)) + '\n'
+        s += leading + '  _location: {:s}'.format(str(self._location)) + '\n'
+        s += pretty_sequence('_items', self._items, tabs+1) + '\n'
+        s += pretty_sequence('_chars', self._chars, tabs+1) + '\n'
+        s += leading + '  _comic_page: {:d}'.format(self._comic_page) + '\n'
+        s += leading + '  _work: {:s}'.format(str(self._work)) + '\n'
+        s += leading + '  _narrative_link: {:s}'.format(str(self._narrative_link)) + '\n'
+        s += leading + '  _following: {:s}'.format(str(self._following)) + '\n'
+        s += leading + '  _convo_participants: {:s}'.format(str(self._convo_participants)) + '\n'
+        s += leading + '  current_event: {:s}'.format(self.current_event.pretty_str(tabs+1)) + '\n'
+        s += leading + ">"
+        return s
 
     def obtain_item(self, item: str, char: Optional[str] = None):
         if self._following is None and char is None:
@@ -486,39 +506,63 @@ class Wizahd:
         t = None
         l = None
 
-        if universe is None:
-            if self._universe is None:
-                raise ValueError("No current universe so cannot infer it")
-            u = self.current_event.universes[0]
-        else:
+        if universe is not None and timeline is None and location is None:
             u = self.current_event.get_universe(ParadoxAddress(universe=universe))
-            if u is None:
-                # defer adding to end of func in case somefin else goes wrong
-                new_univ = True
-                u = Universe(name=universe)
-
-        if timeline is None:
-            if self._timeline is None:
-                raise ValueError("No current timeline so cannot infer it")
-
-            if new_univ:
-                t = Timeline(path=self._timeline)
-                new_tl = True
+            if u is not None:
+                raise ValueError("Universe {!r} already exists".format(universe))
+            u = Universe(name=universe)
+            new_univ = True
+        elif timeline is not None and location is None:
+            if universe is None:
+                if self._universe is None:
+                    raise ValueError("No current universe so cannot infer it")
+                u = self.current_event.universes[0]
             else:
-                t = u.timelines[0]
-        else:
-            t = u.get_timeline(timeline)
-            if t is None:
-                # defer adding to end of func in case somefin else goes wrong
-                new_tl = True
-                t = Timeline(path=timeline)
+                u = self.current_event.get_universe(ParadoxAddress(universe=universe))
+                if u is None:
+                    # defer adding to end of func in case somefin else goes wrong
+                    new_univ = True
+                    u = Universe(name=universe)
 
-        if location is not None:
+            t = u.get_timeline(timeline)
+            if t is not None:
+                raise ValueError("Timeline {!r} already exists in universe {!r}".format(timeline, u.name))
+
+            t = Timeline(path=timeline)
+
+        elif location is not None:
+            if universe is None:
+                if self._universe is None:
+                    raise ValueError("No current universe so cannot infer it")
+                u = self.current_event.universes[0]
+            else:
+                u = self.current_event.get_universe(ParadoxAddress(universe=universe))
+                if u is None:
+                    # defer adding to end of func in case somefin else goes wrong
+                    new_univ = True
+                    u = Universe(name=universe)
+
+            if timeline is None:
+                if self._timeline is None:
+                    raise ValueError("No current timeline so cannot infer it")
+
+                if new_univ:
+                    t = Timeline(path=self._timeline)
+                    new_tl = True
+                else:
+                    t = u.timelines[0]
+            else:
+                t = u.get_timeline(timeline)
+                if t is None:
+                    # defer adding to end of func in case somefin else goes wrong
+                    new_tl = True
+                    t = Timeline(path=timeline)
+
             if t.get_location(location) is None:
                 l = Location(path=location)
                 new_loc = True
             else:
-                raise ValueError("Location {!s} already exists in timeline {!s}:{!s}".format(location, u.name, t.path))
+                raise ValueError("Location {!r} already exists in timeline {!r}:{!r}".format(location, u.name, t.path))
 
         if new_loc:
             t.locations.append(l)

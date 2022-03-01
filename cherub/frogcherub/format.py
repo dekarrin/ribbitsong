@@ -4,12 +4,35 @@ at github.com/dekarrin/rosed, although this port does not use the gem-strings at
 instead opts to use regular str objects.
 """
 
-from typing import List
+from typing import List, Iterable
 
 import re
 
 _space_runs_re = re.compile(r' {2,}')
 _ansi_escape_re = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+
+
+def pretty_sequence(name: str, seq, tab_level: int = 0) -> str:
+    """
+    Return a "pretty-printed" sequence.
+
+    """
+    leading = '  ' * tab_level
+
+    s = leading + '{!s}: ['.format(name)
+    if len(seq) <= 0:
+        s += ']'
+    else:
+        s += '\n'
+        for item in seq:
+            try:
+                item_str = item.pretty_str(tab_level + 1)
+            except AttributeError:
+                item_str = str(item)
+
+            s += leading + '  {:s}\n'.format(item_str)
+        s += leading + ']'
+    return s
 
 
 def remove_ansi_escapes(s: str) -> str:
