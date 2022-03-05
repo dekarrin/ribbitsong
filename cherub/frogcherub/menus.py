@@ -2,30 +2,45 @@ from .events import Event
 from .version import Version
 from . import entry, vars, mutations, textui
 from .forms import Form
-from typing import Tuple, Optional, List
+from typing import Tuple, Optional, List, Dict, Any
 
 import yaql
 from yaql.language.exceptions import YaqlLexicalException, YaqlGrammarException
 import json
 
 
-def show_main_menu(start_file: Optional[str] = None):
-    unsaved_mutations = False
-    last_filename = None
-    wizard_app = textui.App()
-    running = True
-    dataset = {'events': []}
+class _State:
+    def __init__(self, **kwargs):
+        self.last_filename: str = str(kwargs.get('last_filename', ''))
+        self.wizard_app: textui.App = kwargs.get('wizard_app', textui.App())
+        self.running: bool = bool(kwargs.get('running', False))
+        self.dataset: Dict[str, Any] = dict(kwargs.get('dataset', {}))
+        self.unsaved_mutations: bool = bool(kwargs.get('unsaved_mutations', False))
+
+
+def show_main_menu(start_file: Optional[str] = None, start_mode: Optional[str] = None):
+    s = _State(
+        unsaved_mutations=False,
+        last_filename=None,
+        wizard_app=textui.App(),
+        running=True,
+        dataset={'events': []}
+    )
     
     if start_file is not None:
         loaded_dataset = read_datafile(start_file)
         if loaded_dataset is not None:
-            dataset = loaded_dataset
-            last_filename = start_file
-    
-    print("")
-    print("RibbitSong Cherub v" + Version)
-    print("=============================")
-    while running:
+            s.dataset = loaded_dataset
+            s.last_filename = start_file
+
+    if start_mode is not None:
+        _exec_choice(s, start_mode)
+    else:
+        print("")
+        print("RibbitSong Cherub v" + Version)
+        print("=============================")
+        
+    while s.running:
         choices = {
             "wizahd": "Use wizahd text UI to enter data",
             "enter": "Enter data into the collection manually",
@@ -47,51 +62,55 @@ def show_main_menu(start_file: Optional[str] = None):
         
         choice = entry.get_choice(str.lower, prompt="Select operation: ", *choices)
         
-        if choice == "exit":
-            if unsaved_mutations:
-                print("There are unsaved changes in the data!")
-                if not entry.confirm("Are you sure you want to exit and discard the changes?"):
-                    continue
-            running = False
-        elif choice == "mutate":
-            if show_mutate_menu(dataset):
-                unsaved_mutations = True
-        elif choice == "query":
-            query_data(dataset)
-        elif choice == "save":
-            saved_fname = save_dataset(dataset, last_filename)
-            if saved_fname is not None:
-                unsaved_mutations = False
-                last_filename = saved_fname
-        elif choice == "load":
-            if unsaved_mutations:
-                print("There are unsaved changes in the dataset!")
-                if not entry.confirm("Are you sure you want to load a new dataset and discard the changes?"):
-                    continue
-            
-            loaded_dataset, loaded_fname = load_dataset(last_filename)
-            if loaded_dataset is not None:
-                dataset = loaded_dataset
-                last_filename = loaded_fname
-                unsaved_mutations = False
-        elif choice == "enter":
-            last_event = None
-            if len(dataset['events']) > 0:
-                last_event = dataset['events'][-1]
-            events = enter_data(last_event)
-            for e in events:
-                dataset['events'].append(e)
-        elif choice == "wizahd":
-            wiz_list = list()
-            for e in dataset['events']:
-                wiz_list.append(Event(**e))
+        _exec_choice(s, choice)
 
-            wizard_app.import_events(wiz_list)
-            wizard_app.start()
-            if wizard_app.updated_events():
-                wiz_list = wizard_app.export_events()
-                unsaved_mutations = True
-                dataset['events'] = [e.to_dict() for e in wiz_list]
+
+def _exec_choice(state: _State, choice: str):
+    if choice == "exit":
+        if state.unsaved_mutations:
+            print("There are unsaved changes in the data!")
+            if not entry.confirm("Are you sure you want to exit and discard the changes?"):
+                return
+        state.running = False
+    elif choice == "mutate":
+        if show_mutate_menu(state.dataset):
+            state.unsaved_mutations = True
+    elif choice == "query":
+        query_data(state.dataset)
+    elif choice == "save":
+        saved_fname = save_dataset(state.dataset, state.last_filename)
+        if saved_fname is not None:
+            state.unsaved_mutations = False
+            state.last_filename = saved_fname
+    elif choice == "load":
+        if state.unsaved_mutations:
+            print("There are unsaved changes in the dataset!")
+            if not entry.confirm("Are you sure you want to load a new dataset and discard the changes?"):
+                return
+
+        loaded_dataset, loaded_fname = load_dataset(state.last_filename)
+        if loaded_dataset is not None:
+            state.dataset = loaded_dataset
+            state.last_filename = loaded_fname
+            state.unsaved_mutations = False
+    elif choice == "enter":
+        last_event = None
+        if len(state.dataset['events']) > 0:
+            last_event = state.dataset['events'][-1]
+        events = enter_data(last_event)
+        for e in events:
+            state.dataset['events'].append(e)
+    elif choice == "wizahd":
+        wiz_list = list()
+        for e in state.dataset['events']:
+            wiz_list.append(Event(**e))
+
+        state.wizard_app.import_events(wiz_list)
+        state.wizard_app.start()
+        if state.wizard_app.updated_events():
+            wiz_list = state.wizard_app.export_events()
+            state.unsaved_mutations = True
+            state.dataset['events'] = [e.to_dict() for e in wiz_list]
 
 
 def show_mutate_menu(dataset: dict) -> bool:

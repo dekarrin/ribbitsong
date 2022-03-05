@@ -198,7 +198,6 @@ class App:
         self._swap(location=new_loc, timeline=new_tl, universe=new_univ)
         return True
 
-
     # noinspection PyMethodMayBeStatic
     def _show_help(self, options: Dict[str, str]):
         print("Commands:")

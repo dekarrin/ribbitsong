@@ -26,10 +26,16 @@ def main():
 def _parse_cli_and_run():
     parser = argparse.ArgumentParser(description='Cherub Data Entry Tool')
     parser.add_argument('-d', '--datafile', help="A file of datapoints to load with")
+    mode_group = parser.add_mutually_exclusive_group()
+    skip_msg = "Skip the main menu and immediately start with "
+    mode_group.add_argument('-w', '--wizahd', help=skip_msg + "the wizahd", action='store_const', dest='mode', const='wizahd')
+    mode_group.add_argument('-q', '--query', help=skip_msg + "query mode", action='store_const', dest='mode', const='query')
+    mode_group.add_argument('-e', '--enter', help=skip_msg + "data entry mode", action='store_const', dest='mode', const='enter')
+    mode_group.add_argument('-m', '--mutate', help=skip_msg + "mutation mode", action='store_const', dest='mode', const='mutate')
     
     args = parser.parse_args()
     
-    menus.show_main_menu(start_file=args.datafile)
+    menus.show_main_menu(start_file=args.datafile, start_mode=args.mode)
     
     
 class _ExactLevelFilter(object):

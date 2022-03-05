@@ -566,10 +566,16 @@ class Wizahd:
 
         if new_loc:
             t.locations.append(l)
+            if len(t.locations) == 1:
+                self._location = l.path
         if new_tl:
             u.timelines.append(t)
+            if len(u.timelines) == 1:
+                self._timeline = t.path
         if new_univ:
             self.current_event.universes.append(u)
+            if len(self.current_event.universes) == 1:
+                self._universe = u.name
 
     def carry_over_scene(self, address: ParadoxAddress):
         scene = self.current_event.get_location(address)
