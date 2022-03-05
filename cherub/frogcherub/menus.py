@@ -39,7 +39,7 @@ def show_main_menu(start_file: Optional[str] = None, start_mode: Optional[str] =
         print("")
         print("RibbitSong Cherub v" + Version)
         print("=============================")
-        
+
     while s.running:
         choices = {
             "wizahd": "Use wizahd text UI to enter data",

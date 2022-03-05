@@ -512,11 +512,13 @@ class Wizahd:
                 raise ValueError("Universe {!r} already exists".format(universe))
             u = Universe(name=universe)
             new_univ = True
+
         elif timeline is not None and location is None:
             if universe is None:
                 if self._universe is None:
                     raise ValueError("No current universe so cannot infer it")
                 u = self.current_event.universes[0]
+                print("USING CUR UNIVERSE: {!r}".format(u.name))
             else:
                 u = self.current_event.get_universe(ParadoxAddress(universe=universe))
                 if u is None:
@@ -524,11 +526,11 @@ class Wizahd:
                     new_univ = True
                     u = Universe(name=universe)
 
-            t = u.get_timeline(timeline)
-            if t is not None:
+            if u.get_timeline(timeline) is None:
+                t = Timeline(path=timeline)
+                new_tl = True
+            else:
                 raise ValueError("Timeline {!r} already exists in universe {!r}".format(timeline, u.name))
-
-            t = Timeline(path=timeline)
 
         elif location is not None:
             if universe is None:
@@ -566,14 +568,17 @@ class Wizahd:
 
         if new_loc:
             t.locations.append(l)
+            self.updated = True
             if len(t.locations) == 1:
                 self._location = l.path
         if new_tl:
             u.timelines.append(t)
+            self.updated = True
             if len(u.timelines) == 1:
                 self._timeline = t.path
         if new_univ:
             self.current_event.universes.append(u)
+            self.updated = True
             if len(self.current_event.universes) == 1:
                 self._universe = u.name
 
