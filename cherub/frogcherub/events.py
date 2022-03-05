@@ -337,8 +337,10 @@ class Citation:
         
     @staticmethod
     def from_dict(d: Dict) -> 'Citation':
-        t = d['type'].lower()
-        return Citation(t, **d)
+        dcopy = dict(d)
+        t = dcopy['type'].lower()
+        del dcopy['type']
+        return Citation(t, **dcopy)
 
 
 class Constraint:
@@ -606,8 +608,10 @@ class Constraint:
 
     @staticmethod
     def from_dict(d: Dict) -> 'Constraint':
-        t = d['type'].lower()
-        return Constraint(t, **d)
+        dcopy = dict(d)
+        t = dcopy['type'].lower()
+        del dcopy['type']
+        return Constraint(t, **dcopy)
         
 
 class Tag:
@@ -1198,8 +1202,10 @@ class Tag:
 
     @staticmethod
     def from_dict(d: Dict) -> 'Tag':
-        t = d['type'].lower()
-        return Tag(t, **d)
+        dcopy = dict(d)
+        t = dcopy['type'].lower()
+        del dcopy['type']
+        return Tag(t, **dcopy)
 
 
 class Location:
