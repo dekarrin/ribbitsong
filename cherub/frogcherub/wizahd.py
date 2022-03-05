@@ -149,7 +149,13 @@ class Wizahd:
             
         self.updated = True
 
-    def merge_items(self, items: List[str], results: List[str], sylladex_results: List[str], char: Optional[str] = None):
+    def merge_items(
+            self,
+            items: List[str],
+            results: List[str],
+            sylladex_results: List[str],
+            char: Optional[str] = None
+    ):
         if self._following is None and char is None:
             raise ValueError("Not following any char yet")
         if char is None:
@@ -163,15 +169,22 @@ class Wizahd:
         char_loc = self.current_event.get_location(char_addr)
         for item in items:
             if item not in char_loc.items:
-                pass  # dont disallow this, the char may be using items in inventory and we arent yet tracking inventory
-                      # so no way to check atm
+                pass
+                # dont disallow this, the char may be using items in inventory and we arent yet tracking inventory
+                # so no way to check atm
         for result in results:
             if result in char_loc.items and result not in sylladex_results:
                 msg = "result item {!r} is already in this event in the same place as {!r}."
                 msg += "Remove it manually or give an event that removes it."
                 raise ValueError(msg.format(result, char))
 
-        self.add_char_item_interaction("item_merged", char, source_items=items, result_items=results, sylladex_results=sylladex_results)
+        self.add_char_item_interaction(
+            "item_merged",
+            char,
+            source_items=items,
+            result_items=results,
+            sylladex_results=sylladex_results
+        )
 
         for item in items:
             if item in char_loc.items:
@@ -186,7 +199,13 @@ class Wizahd:
             
         self.updated = True
 
-    def split_items(self, items: List[str], results: List[str], sylladex_results: List[str], char: Optional[str] = None):
+    def split_items(
+            self,
+            items: List[str],
+            results: List[str],
+            sylladex_results: List[str],
+            char: Optional[str] = None
+    ):
         if self._following is None and char is None:
             raise ValueError("Not following any char yet")
         if char is None:
@@ -200,15 +219,22 @@ class Wizahd:
         char_loc = self.current_event.get_location(char_addr)
         for item in items:
             if item not in char_loc.items:
-                pass  # dont disallow this, the char may be using items in inventory and we arent yet tracking inventory
-                      # so no way to check atm
+                pass
+                # dont disallow this, the char may be using items in inventory and we arent yet tracking inventory
+                # so no way to check atm
         for result in results:
             if result in char_loc.items and result not in sylladex_results:
                 msg = "result item {!r} is already in this event in the same place as {!r}."
                 msg += "Remove it manually or give an event that removes it."
                 raise ValueError(msg.format(result, char))
 
-        self.add_char_item_interaction("item_split", char, source_items=items, result_items=results, sylladex_results=sylladex_results)
+        self.add_char_item_interaction(
+            "item_split",
+            char,
+            source_items=items,
+            result_items=results,
+            sylladex_results=sylladex_results
+        )
 
         for item in items:
             if item in char_loc.items:
@@ -238,7 +264,8 @@ class Wizahd:
         self.current_event.meta.add('convo')
         address = self.current_event.address_of(self._following)
         if address is None:
-            raise ValueError("Followed char {!r} not present in current event. This should never happen.".format(self._following))
+            msg = "Followed char {!r} not present in current event. This should never happen."
+            raise ValueError(msg.format(self._following))
         self.mc_add_convo_participant(self._following, address=address)
         
         if other_char_addr is None:
@@ -330,7 +357,14 @@ class Wizahd:
             result_items: List[str] = None,
             sylladex_results: List[str] = None
     ):
-        if interaction_type not in ["char_obtains_item", "char_drops_item", "char_uses_item", "char_gives_item_to_char", "item_merged", "item_split"]:
+        if interaction_type not in [
+            "char_obtains_item",
+            "char_drops_item",
+            "char_uses_item",
+            "char_gives_item_to_char",
+            "item_merged",
+            "item_split"
+        ]:
             raise ValueError("not a valid item interaction type: {!r}".format(interaction_type))
 
         if source_items is None:
@@ -599,10 +633,6 @@ class Wizahd:
         address = address.copy()
 
         update_universe = update_timeline = update_location = None
-
-        univ = None
-        tl = None
-        loc = None
 
         if address.has_universe():
             if address.universe_index < 0:

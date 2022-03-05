@@ -1515,7 +1515,7 @@ class Event:
         s += leading + '  description: {:s}\n'.format(self.description)
         s += leading + '  portrayed_in: {!s}\n'.format(self.portrayed_in)
 
-        s += pretty_sequence("citations", self.constraints, tabs+1) + '\n'
+        s += pretty_sequence("citations", self.citations, tabs+1) + '\n'
         s += pretty_sequence("constraints", self.constraints, tabs+1) + '\n'
         s += pretty_sequence("tags", self.tags, tabs+1) + '\n'
         s += pretty_sequence("universes", self.universes, tabs+1) + '\n'

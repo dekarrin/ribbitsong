@@ -33,36 +33,39 @@ def show_main_menu(start_file: Optional[str] = None, start_mode: Optional[str] =
             s.dataset = loaded_dataset
             s.last_filename = start_file
 
-    if start_mode is not None:
-        _exec_choice(s, start_mode)
-    else:
+    choice = None
+    if start_mode is None:
         print("")
         print("RibbitSong Cherub v" + Version)
         print("=============================")
+    else:
+        choice = start_mode
 
     while s.running:
-        choices = {
-            "wizahd": "Use wizahd text UI to enter data",
-            "enter": "Enter data into the collection manually",
-            "query": "Query the data using YAQL syntax",
-            "mutate": "Run a mutation operation",
-            "save": "Save the collection to disk",
-            "load": "Load a collection from disk",
-            "exit": "Quit this program",
-        }
-            
-        print("")
-        print("Main Menu")
-        print("-" * 50)
-        
-        for c in choices:
-            print("{:s} - {:s}".format(c, choices[c]))
-        
-        print("-" * 50)
-        
-        choice = entry.get_choice(str.lower, prompt="Select operation: ", *choices)
+        if choice is None:
+            choices = {
+                "wizahd": "Use wizahd text UI to enter data",
+                "enter": "Enter data into the collection manually",
+                "query": "Query the data using YAQL syntax",
+                "mutate": "Run a mutation operation",
+                "save": "Save the collection to disk",
+                "load": "Load a collection from disk",
+                "exit": "Quit this program",
+            }
+
+            print("")
+            print("Main Menu")
+            print("-" * 50)
+
+            for c in choices:
+                print("{:s} - {:s}".format(c, choices[c]))
+
+            print("-" * 50)
+
+            choice = entry.get_choice(str.lower, prompt="Select operation: ", *choices)
         
         _exec_choice(s, choice)
+        choice = None
 
 
 def _exec_choice(state: _State, choice: str):

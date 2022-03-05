@@ -6,7 +6,7 @@ from .events import Event, ParadoxAddress
 from . import format
 
 TotalWidth = 80
-LeftColPercentWidth = 0.25
+LeftColPercentWidth = 0.30
 RightColPercentWidth = 0.25
 
 # subtract 3 to account for left-right split's separator and padding
