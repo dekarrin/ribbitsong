@@ -147,6 +147,8 @@ class Citation:
             return False
         if other.type != self.type:
             return False
+        if other.work != self.work:
+            return False
             
         if self.type == 'dialog':
             if self.panel != other.panel:
@@ -179,13 +181,13 @@ class Citation:
         
     def __hash__(self) -> int:
         if self.type == 'dialog':
-            return hash((self.type, self.panel, self.line, self.character))
+            return hash((self.work, self.type, self.panel, self.line, self.character))
         elif self.type == 'narration':
-            return hash((self.type, self.panel, self.paragraph, self.sentence))
+            return hash((self.work, self.type, self.panel, self.paragraph, self.sentence))
         elif self.type == 'media':
-            return hash((self.type, self.panel, self.timestamp))
+            return hash((self.work, self.type, self.panel, self.timestamp))
         elif self.type == 'commentary':
-            return hash((self.type, self.volume, self.page))
+            return hash((self.work, self.type, self.volume, self.page))
         else:
             raise ValueError("should never happen")
             
@@ -202,11 +204,14 @@ class Citation:
         else:
             raise ValueError("should never happen")
             
-        s += ">"
+        s += " in \"{:s}\">".format(self.work)
         return s
         
     def to_dict(self) -> Dict:
-        d = {'type': self.type}
+        d = {
+            'type': self.type,
+            'work': self.work,
+        }
         
         if self.type == "dialog":
             d['panel'] = self.panel

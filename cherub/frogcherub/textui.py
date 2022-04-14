@@ -79,6 +79,7 @@ class App:
             'swap': "Switch to a different UTL. The followed char does not come with",
             'home': "Return to the UTL that the followed character is in",
             'follow': "Set the current narrative main character",
+            'portrayal': "Set the panel or commentary that event is portrayed in",
             "debug-wizahd": "Get a full print-out of the wizahd"
         }
         
@@ -109,6 +110,8 @@ class App:
             return self._swap_home()
         elif command == 'follow':
             return self._follow()
+        elif command == 'portrayal':
+            return self._change_portrayal()
         elif command == 'debug-wizahd':
             return self._debug_wizahd()
             
@@ -421,19 +424,27 @@ class App:
 
         self.w.description = desc
         return True
+
+    def _change_portrayal(self) -> bool:
+        """
+        Update the portrayal
+        """
+        print("Current portrayal is {:s}".format(str(self.w.current_event.portrayed_in)))
+        print("")
         
     def _build_main_component(self) -> str:
+        top = self._build_portrayal_and_time_component()
         left = self._build_main_component_left()
         right = self._build_main_component_right()
-        full = format.columns(left, _left_width + 1, right, _right_width + 1, no_lwrap=True)
+        mid = format.columns(left, _left_width + 1, right, _right_width + 1, no_lwrap=True)
 
         bar = '-' * TotalWidth
 
         # universe list goes under everyfin so it can be fully displayed
 
-        univs = self._build_universe_component_text()
-        univs = format.wrap(univs, TotalWidth, extend=True)
-        return bar + '\n' + full + '\n' + bar + '\n' + univs + '\n' + bar
+        bot = self._build_universe_component_text()
+        bot = format.wrap(bot, TotalWidth, extend=True)
+        return bar +'\n' + top + '\n' + bar + '\n' + mid + '\n' + bar + '\n' + bot + '\n' + bar
 
     def _build_main_component_left(self) -> str:
         left_top = self._build_following()
@@ -538,4 +549,43 @@ class App:
         comp += '\n'
         comp += 'Chars: '
         comp += ', '.join(self.w.characters)
+        return comp
+
+    def _build_portrayal_and_time_component(self) -> str:
+        left = self._build_portrayal_text()
+        # TODO: add time when we can calculate that
+        #  right = self._build_time_text()
+        left = format.wrap(left, TotalWidth, extend=True)
+        return left
+
+    def _build_portrayal_text(self) -> str:
+        comp = "{:s}, Panel ".format(self.w.work)
+
+        portrayal = self.w.current_event.portrayed_in
+        if portrayal.type == "dialog":
+            comp += "#{:d}".format(portrayal.panel)
+            if portrayal.line != 0:
+                comp += " (DIA Line {:d}".format(portrayal.line)
+                if portrayal.character != "":
+                    comp += " by {:s}".format(portrayal.character)
+                comp += ")"
+            elif portrayal.character != "":
+                comp += " (DIA by {:s})".format(portrayal.character)
+        elif portrayal.type == "narration":
+            comp += "#{:d}".format(portrayal.panel)
+            if portrayal.paragraph != 0:
+                comp += " (NAR para {:d}".format(portrayal.paragraph)
+                if portrayal.sentence != 0:
+                    comp += ", sentence {:d}".format(portrayal.sentence)
+                comp += ")"
+            elif portrayal.sentence != 0:
+                comp += " (NAR sentence {:d})".format(portrayal.sentence)
+        elif portrayal.type == "media":
+            comp += "#{:d} (MEDIA".format(portrayal.panel)
+            if portrayal.timestamp != "":
+                comp += " @{:s}".format(portrayal.timestamp)
+            comp += ")"
+        elif portrayal.type == "commentary":
+            comp += "(COMMENTARY v{:s}p{:s})".format(portrayal.volume, portrayal.page)
+
         return comp
