@@ -21,8 +21,8 @@ _right_width = _usable_total_width - _left_width
 _usable_upper_left_width = _left_width - 3
 
 _left_percent_within_left_main = LeftColPercentWidth * (1.0/_left_and_center_col_percent_width)
-_following_and_univ_width = int(round(_usable_upper_left_width * _left_percent_within_left_main))
-_name_and_desc_width = _usable_upper_left_width - _following_and_univ_width
+_following_width = int(round(_usable_upper_left_width * _left_percent_within_left_main))
+_name_and_desc_width = _usable_upper_left_width - _following_width
 
 
 def input_str(prompt: str) -> str:
@@ -428,13 +428,18 @@ class App:
         full = format.columns(left, _left_width + 1, right, _right_width + 1, no_lwrap=True)
 
         bar = '-' * TotalWidth
-        return bar + '\n' + full + '\n' + bar
+
+        # universe list goes under everyfin so it can be fully displayed
+
+        univs = self._build_universe_component_text()
+        univs = format.wrap(univs, TotalWidth, extend=True)
+        return bar + '\n' + full + '\n' + bar + '\n' + univs + '\n' + bar
 
     def _build_main_component_left(self) -> str:
-        left_top = self._build_following_and_universes()
+        left_top = self._build_following()
         right_top = self._build_name_and_description()
         
-        top = format.columns(left_top, _following_and_univ_width + 1, right_top, _name_and_desc_width + 1)
+        top = format.columns(left_top, _following_width + 1, right_top, _name_and_desc_width + 1)
 
         bar = '-' * _left_width
         bot = self._build_inhabitants_component_text()
@@ -444,11 +449,9 @@ class App:
     def _build_main_component_right(self) -> str:
         return self._build_tags_component_text()
         
-    def _build_following_and_universes(self) -> str:
+    def _build_following(self) -> str:
         following = self._build_following_component_text()
-        bar = '-' * _following_and_univ_width
-        universes = self._build_universe_component_text()
-        return following + '\n' + bar + '\n' + universes
+        return following
         
     def _build_name_and_description(self) -> str:
         name = self._build_name_component_text()
@@ -483,10 +486,35 @@ class App:
         return comp
         
     def _build_universe_component_text(self) -> str:
-        comp = "Universes:"
+        comp = "Universes (UTLs):"
         
         for addr in self.w.current_event.all_addresses():
-            comp += '\n* {:s}'.format(str(addr))
+            univ_line = '\n'
+            if self.w.universe == addr.universe and self.w.timeline == addr.timeline and self.w.location == addr.location:
+                univ_line += '* '
+            else:
+                univ_line += '  '
+
+            univ_line += '{:s} : {:s} : {:s}'.format(addr.universe, addr.timeline, addr.location)
+            comp += univ_line
+
+        if len(self.w.current_event.all_addresses()) < 1:
+            univ_line = '\n* '
+            if self.w.universe is None:
+                univ_line += "(!)None"
+            else:
+                univ_line += self.w.universe
+            univ_line += ' : '
+            if self.w.timeline is None:
+                univ_line += "(!)None"
+            else:
+                univ_line += self.w.timeline
+            univ_line += ' : '
+            if self.w.location is None:
+                univ_line += "(!)None"
+            else:
+                univ_line += self.w.location
+            comp += univ_line
             
         return comp
         
